@@ -21,16 +21,15 @@ import org.jackhuang.hmcl.download.DownloadProvider;
 import org.jackhuang.hmcl.download.VersionList;
 import org.jackhuang.hmcl.task.GetTask;
 import org.jackhuang.hmcl.task.Task;
-import org.jackhuang.hmcl.util.StringUtils;
-import org.jackhuang.hmcl.util.versioning.VersionNumber;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.parser.Parser;
 
-import java.net.URI;
-import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Map;
+import java.util.List;
 
 /**
- *
  * @author huangyuhui
  */
 public final class ForgeVersionList extends VersionList<ForgeRemoteVersion> {
@@ -45,50 +44,19 @@ public final class ForgeVersionList extends VersionList<ForgeRemoteVersion> {
         return false;
     }
 
-    private static String toLookupVersion(String gameVersion) {
-        return "1.7.10-pre4".equals(gameVersion) ? "1.7.10_pre4" : gameVersion;
-    }
-
-    private static String fromLookupVersion(String lookupVersion) {
-        return "1.7.10_pre4".equals(lookupVersion) ? "1.7.10-pre4" : lookupVersion;
-    }
-
+    /// Fetches the Forge version list from the official Maven metadata.
+    /// Only Forge 1.13 and newer is supported, as older versions are not published on Maven.
     @Override
     public Task<?> refreshAsync() {
-        return new GetTask(FORGE_LIST).thenGetJsonAsync(ForgeVersionRoot.class)
-                .thenAcceptAsync(root -> {
+        return new GetTask(downloadProvider.injectURLWithCandidates(MAVEN_METADATA_URL))
+                .thenApplyAsync(xml -> parseMavenMetadata(xml))
+                .thenAcceptAsync(versions -> {
                     lock.writeLock().lock();
 
                     try {
-                        if (root == null)
-                            return;
-                        versions.clear();
-
-                        for (Map.Entry<String, int[]> entry : root.getGameVersions().entrySet()) {
-                            String gameVersion = fromLookupVersion(VersionNumber.normalize(entry.getKey()));
-                            for (int v : entry.getValue()) {
-                                ForgeVersion version = root.getNumber().get(v);
-                                if (version == null)
-                                    continue;
-                                String jar = null;
-                                for (String[] file : version.getFiles())
-                                    if (file.length > 1 && "installer".equals(file[1])) {
-                                        String classifier = version.getGameVersion() + "-" + version.getVersion()
-                                                + (StringUtils.isNotBlank(version.getBranch()) ? "-" + version.getBranch() : "");
-                                        String fileName = root.getArtifact() + "-" + classifier + "-" + file[1] + "." + file[0];
-                                        jar = root.getWebPath() + classifier + "/" + fileName;
-                                    }
-
-                                if (jar == null)
-                                    continue;
-
-                                versions.put(gameVersion, new ForgeRemoteVersion(
-                                        toLookupVersion(version.getGameVersion()),
-                                        version.getVersion(),
-                                        version.getModified() > 0 ? Instant.ofEpochSecond(version.getModified()) : null,
-                                        Collections.singletonList(jar)
-                                ));
-                            }
+                        this.versions.clear();
+                        for (ForgeRemoteVersion version : versions) {
+                            this.versions.put(version.getGameVersion(), version);
                         }
                     } finally {
                         lock.writeLock().unlock();
@@ -96,5 +64,25 @@ public final class ForgeVersionList extends VersionList<ForgeRemoteVersion> {
                 });
     }
 
-    public static final URI FORGE_LIST = URI.create("https://hmcl.glavo.site/metadata/forge/");
+    /// Parses Forge's Maven metadata and maps each version to its installer URL.
+    private static List<ForgeRemoteVersion> parseMavenMetadata(String xml) {
+        Document document = Jsoup.parse(xml, "", Parser.xmlParser());
+        List<ForgeRemoteVersion> result = new ArrayList<>();
+        for (var element : document.select("version")) {
+            String fullVersion = element.text();
+            int separator = fullVersion.indexOf('-');
+            if (separator <= 0) {
+                continue;
+            }
+
+            String gameVersion = fullVersion.substring(0, separator);
+            String selfVersion = fullVersion.substring(separator + 1);
+            String installerUrl = MAVEN_BASE + fullVersion + "/forge-" + fullVersion + "-installer.jar";
+            result.add(new ForgeRemoteVersion(gameVersion, selfVersion, null, Collections.singletonList(installerUrl)));
+        }
+        return result;
+    }
+
+    private static final String MAVEN_METADATA_URL = "https://maven.minecraftforge.net/net/minecraftforge/forge/maven-metadata.xml";
+    private static final String MAVEN_BASE = "https://maven.minecraftforge.net/net/minecraftforge/forge/";
 }

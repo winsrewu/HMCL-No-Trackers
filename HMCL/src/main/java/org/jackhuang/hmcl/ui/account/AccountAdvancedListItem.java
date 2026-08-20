@@ -24,14 +24,11 @@ import javafx.geometry.Pos;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.control.Tooltip;
 import org.jackhuang.hmcl.auth.Account;
-import org.jackhuang.hmcl.auth.authlibinjector.AuthlibInjectorAccount;
-import org.jackhuang.hmcl.auth.authlibinjector.AuthlibInjectorServer;
 import org.jackhuang.hmcl.game.TexturesLoader;
 import org.jackhuang.hmcl.setting.Accounts;
 import org.jackhuang.hmcl.ui.FXUtils;
 import org.jackhuang.hmcl.ui.construct.AdvancedListItem;
 import org.jackhuang.hmcl.util.StringUtils;
-import org.jackhuang.hmcl.util.javafx.BindingMapping;
 
 import static javafx.beans.binding.Bindings.createStringBinding;
 import static org.jackhuang.hmcl.setting.Accounts.getAccountFactory;
@@ -98,11 +95,7 @@ public class AccountAdvancedListItem extends AdvancedListItem {
     }
 
     private static ObservableValue<String> accountSubtitle(Account account) {
-        if (account instanceof AuthlibInjectorAccount) {
-            return BindingMapping.of(((AuthlibInjectorAccount) account).getServer(), AuthlibInjectorServer::getName);
-        } else {
-            return createStringBinding(() -> getLocalizedLoginTypeName(getAccountFactory(account)));
-        }
+        return createStringBinding(() -> getLocalizedLoginTypeName(getAccountFactory(account)));
     }
 
     private void installTooltip() {

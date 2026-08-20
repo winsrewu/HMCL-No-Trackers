@@ -42,8 +42,6 @@ public class ModpackExportInfo {
     private String launchArguments;
     private String javaArguments;
 
-    private String authlibInjectorServer;
-
     private List<McbbsModpackManifest.Origin> origins = new ArrayList<>();
 
     private boolean noCreateRemoteFiles;
@@ -187,15 +185,6 @@ public class ModpackExportInfo {
         return this;
     }
 
-    public String getAuthlibInjectorServer() {
-        return authlibInjectorServer;
-    }
-
-    public ModpackExportInfo setAuthlibInjectorServer(String authlibInjectorServer) {
-        this.authlibInjectorServer = authlibInjectorServer;
-        return this;
-    }
-
     public List<McbbsModpackManifest.Origin> getOrigins() {
         return Collections.unmodifiableList(origins);
     }
@@ -233,7 +222,6 @@ public class ModpackExportInfo {
         private boolean requireFileApi;
         private boolean validateFileApi;
         private boolean requireMinMemory;
-        private boolean requireAuthlibInjectorServer;
         private boolean requireLaunchArguments;
         private boolean requireJavaArguments;
         private boolean requireOrigins;
@@ -265,10 +253,6 @@ public class ModpackExportInfo {
 
         public boolean isRequireMinMemory() {
             return requireMinMemory;
-        }
-
-        public boolean isRequireAuthlibInjectorServer() {
-            return requireAuthlibInjectorServer;
         }
 
         public boolean isRequireLaunchArguments() {
@@ -314,11 +298,6 @@ public class ModpackExportInfo {
 
         public Options requireMinMemory() {
             requireMinMemory = true;
-            return this;
-        }
-
-        public Options requireAuthlibInjectorServer() {
-            requireAuthlibInjectorServer = true;
             return this;
         }
 

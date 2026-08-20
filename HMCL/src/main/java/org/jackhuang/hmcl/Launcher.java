@@ -43,8 +43,6 @@ import org.jackhuang.hmcl.ui.Controllers;
 import org.jackhuang.hmcl.ui.FXUtils;
 import org.jackhuang.hmcl.ui.WindowsNativeUtils;
 import org.jackhuang.hmcl.ui.animation.AnimationUtils;
-import org.jackhuang.hmcl.upgrade.UpdateChecker;
-import org.jackhuang.hmcl.upgrade.UpdateHandler;
 import org.jackhuang.hmcl.util.*;
 import org.jackhuang.hmcl.util.io.FileUtils;
 import org.jackhuang.hmcl.util.io.JarUtils;
@@ -126,10 +124,6 @@ public final class Launcher extends Application {
                 showAlert(AlertType.WARNING, i18n("fatal.config_unsupported_version"));
             }
 
-            if (Metadata.HMCL_LOCAL_HOME.toString().indexOf('=') >= 0) {
-                showAlert(AlertType.WARNING, i18n("fatal.illegal_char"));
-            }
-
             // runLater to ensure SettingsManager.init() finished initialization
             Platform.runLater(() -> {
                 // When launcher visibility is set to "hide and reopen" without Platform.implicitExit = false,
@@ -139,8 +133,6 @@ public final class Launcher extends Application {
 
                 if (OperatingSystem.CURRENT_OS == OperatingSystem.MACOS)
                     Themes.applyNativeDarkMode(primaryStage);
-
-                UpdateChecker.init();
 
                 WindowsNativeUtils.installWindowsAppUserModelRelaunchProperties(primaryStage);
                 primaryStage.show();
@@ -156,7 +148,6 @@ public final class Launcher extends Application {
         ProxyManager.init();
         Accounts.init();
         GameDirectoryManager.init();
-        AuthlibInjectorServers.init();
         AnimationUtils.init();
 
         CacheRepository.setInstance(HMCLCacheRepository.REPOSITORY);
@@ -279,11 +270,6 @@ public final class Launcher extends Application {
     }
 
     public static void main(String[] args) {
-        if (UpdateHandler.processArguments(args)) {
-            LOG.shutdown();
-            return;
-        }
-
         Thread.setDefaultUncaughtExceptionHandler(CRASH_REPORTER);
         AsyncTaskExecutor.setUncaughtExceptionHandler(new CrashReporter(false));
 

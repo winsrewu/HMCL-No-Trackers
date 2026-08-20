@@ -27,8 +27,6 @@ import java.util.Collections;
 
 public final class CleanroomVersionList extends VersionList<CleanroomRemoteVersion> {
     private final DownloadProvider downloadProvider;
-    private static final String LOADER_LIST_URL = "https://hmcl.glavo.site/metadata/cleanroom/index.json";
-    private static final String INSTALLER_URL = "https://hmcl.glavo.site/metadata/cleanroom/files/cleanroom-%s-installer.jar";
 
     public CleanroomVersionList(DownloadProvider downloadProvider) {
         this.downloadProvider = downloadProvider;
@@ -41,24 +39,16 @@ public final class CleanroomVersionList extends VersionList<CleanroomRemoteVersi
 
     @Override
     public Task<?> refreshAsync() {
-        return Task.allOf(
-                new GetTask(downloadProvider.injectURLWithCandidates(LOADER_LIST_URL)).thenGetJsonAsync(ReleaseResult[].class)
-        ).thenAcceptAsync(results -> {
+        return Task.supplyAsync(() -> {
             lock.writeLock().lock();
 
             try {
                 versions.clear();
-                for (ReleaseResult version : results.get(0)) {
-                    versions.put("1.12.2", new CleanroomRemoteVersion(
-                            "1.12.2", version.name, Instant.parse(version.created_at),
-                            Collections.singletonList(
-                                    String.format(INSTALLER_URL, version.name)
-                            )
-                    ));
-                }
             } finally {
                 lock.writeLock().unlock();
             }
+
+            return null;
         });
     }
 

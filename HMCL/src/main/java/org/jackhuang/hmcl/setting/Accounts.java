@@ -24,9 +24,7 @@ import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
-import org.jackhuang.hmcl.Metadata;
 import org.jackhuang.hmcl.auth.*;
-import org.jackhuang.hmcl.auth.authlibinjector.*;
 import org.jackhuang.hmcl.auth.microsoft.MicrosoftAccount;
 import org.jackhuang.hmcl.auth.microsoft.MicrosoftAccountFactory;
 import org.jackhuang.hmcl.auth.microsoft.MicrosoftService;
@@ -36,20 +34,16 @@ import org.jackhuang.hmcl.auth.yggdrasil.RemoteAuthenticationException;
 import org.jackhuang.hmcl.game.OAuthServer;
 import org.jackhuang.hmcl.task.Schedulers;
 import org.jackhuang.hmcl.util.gson.JsonUtils;
-import org.jackhuang.hmcl.util.io.JarUtils;
 import org.jackhuang.hmcl.util.skin.InvalidSkinException;
 import org.jetbrains.annotations.Nullable;
 
 import javax.net.ssl.SSLException;
 import java.io.IOException;
-import java.nio.file.Paths;
 import java.util.*;
 
-import static java.util.stream.Collectors.toList;
 import static javafx.collections.FXCollections.observableArrayList;
 import static org.jackhuang.hmcl.setting.SettingsManager.settings;
 import static org.jackhuang.hmcl.setting.SettingsManager.getAccountMetadataRecords;
-import static org.jackhuang.hmcl.setting.SettingsManager.getAuthlibInjectorServers;
 import static org.jackhuang.hmcl.setting.SettingsManager.getUserAccountMetadataRecords;
 import static org.jackhuang.hmcl.setting.SettingsManager.userSettings;
 import static org.jackhuang.hmcl.ui.FXUtils.onInvalidating;
@@ -66,14 +60,11 @@ public final class Accounts {
     private Accounts() {
     }
 
-    private static final AuthlibInjectorArtifactProvider AUTHLIB_INJECTOR_DOWNLOADER = createAuthlibInjectorArtifactProvider();
-
     public static final OAuthServer.Factory OAUTH_CALLBACK = new OAuthServer.Factory();
 
-    public static final OfflineAccountFactory FACTORY_OFFLINE = new OfflineAccountFactory(AUTHLIB_INJECTOR_DOWNLOADER);
-    public static final AuthlibInjectorAccountFactory FACTORY_AUTHLIB_INJECTOR = new AuthlibInjectorAccountFactory(AUTHLIB_INJECTOR_DOWNLOADER, Accounts::getOrCreateAuthlibInjectorServer);
+    public static final OfflineAccountFactory FACTORY_OFFLINE = new OfflineAccountFactory();
     public static final MicrosoftAccountFactory FACTORY_MICROSOFT = new MicrosoftAccountFactory(new MicrosoftService(OAUTH_CALLBACK));
-    public static final List<AccountFactory<?>> FACTORIES = immutableListOf(FACTORY_OFFLINE, FACTORY_MICROSOFT, FACTORY_AUTHLIB_INJECTOR);
+    public static final List<AccountFactory<?>> FACTORIES = immutableListOf(FACTORY_OFFLINE, FACTORY_MICROSOFT);
 
     // ==== login type / account factory mapping ====
     private static final Map<String, AccountFactory<?>> type2factory = new HashMap<>();
@@ -81,7 +72,6 @@ public final class Accounts {
 
     static {
         type2factory.put("offline", FACTORY_OFFLINE);
-        type2factory.put("authlibInjector", FACTORY_AUTHLIB_INJECTOR);
         type2factory.put("microsoft", FACTORY_MICROSOFT);
 
         type2factory.forEach((type, factory) -> factory2type.put(factory, type));
@@ -91,10 +81,6 @@ public final class Accounts {
         String type = factory2type.get(factory);
         if (type != null) return type;
 
-        if (factory instanceof BoundAuthlibInjectorAccountFactory) {
-            return factory2type.get(FACTORY_AUTHLIB_INJECTOR);
-        }
-
         throw new IllegalArgumentException("Unrecognized account factory");
     }
 
@@ -102,17 +88,11 @@ public final class Accounts {
         return Optional.ofNullable(type2factory.get(loginType))
                 .orElseThrow(() -> new IllegalArgumentException("Unrecognized login type"));
     }
-
-    public static BoundAuthlibInjectorAccountFactory getAccountFactoryByAuthlibInjectorServer(AuthlibInjectorServer server) {
-        return new BoundAuthlibInjectorAccountFactory(AUTHLIB_INJECTOR_DOWNLOADER, server);
-    }
     // ====
 
     public static AccountFactory<?> getAccountFactory(Account account) {
         if (account instanceof OfflineAccount)
             return FACTORY_OFFLINE;
-        else if (account instanceof AuthlibInjectorAccount)
-            return FACTORY_AUTHLIB_INJECTOR;
         else if (account instanceof MicrosoftAccount)
             return FACTORY_MICROSOFT;
         else
@@ -412,8 +392,6 @@ public final class Accounts {
 
         initialized = true;
 
-        getAuthlibInjectorServers().addListener(onInvalidating(Accounts::removeDanglingAuthlibInjectorAccounts));
-
         if (selected != null) {
             Account finalSelected = selected;
             Schedulers.io().execute(() -> {
@@ -421,18 +399,6 @@ public final class Accounts {
                     finalSelected.logIn();
                 } catch (Throwable e) {
                     LOG.warning("Failed to log " + finalSelected + " in", e);
-                }
-            });
-        }
-
-        for (AuthlibInjectorServer server : getAuthlibInjectorServers()) {
-            if (selected instanceof AuthlibInjectorAccount && ((AuthlibInjectorAccount) selected).getServer() == server)
-                continue;
-            Schedulers.io().execute(() -> {
-                try {
-                    server.fetchMetadataResponse();
-                } catch (IOException e) {
-                    LOG.warning("Failed to fetch authlib-injector server metadata: " + server, e);
                 }
             });
         }
@@ -454,53 +420,9 @@ public final class Accounts {
         return selectedAccount;
     }
 
-    // ==== authlib-injector ====
-    private static AuthlibInjectorArtifactProvider createAuthlibInjectorArtifactProvider() {
-        String authlibinjectorLocation = System.getProperty("hmcl.authlibinjector.location");
-        if (authlibinjectorLocation != null) {
-            LOG.info("Using specified authlib-injector: " + authlibinjectorLocation);
-            return new SimpleAuthlibInjectorArtifactProvider(Paths.get(authlibinjectorLocation));
-        }
-
-        String authlibInjectorVersion = JarUtils.getAttribute("hmcl.authlib-injector.version", null);
-        if (authlibInjectorVersion == null)
-            throw new AssertionError("Missing hmcl.authlib-injector.version");
-
-        String authlibInjectorFileName = "authlib-injector-" + authlibInjectorVersion + ".jar";
-        return new AuthlibInjectorExtractor(Accounts.class.getResource("/assets/" + authlibInjectorFileName),
-                Metadata.DEPENDENCIES_DIRECTORY.resolve("universal").resolve(authlibInjectorFileName));
-    }
-
-    private static AuthlibInjectorServer getOrCreateAuthlibInjectorServer(String url) {
-        return getAuthlibInjectorServers().stream()
-                .filter(server -> url.equals(server.getUrl()))
-                .findFirst()
-                .orElseGet(() -> {
-                    AuthlibInjectorServer server = new AuthlibInjectorServer(url);
-                    getAuthlibInjectorServers().add(server);
-                    return server;
-                });
-    }
-
-    /**
-     * After an {@link AuthlibInjectorServer} is removed, the associated accounts should also be removed.
-     * This method performs a check and removes the dangling accounts.
-     */
-    private static void removeDanglingAuthlibInjectorAccounts() {
-        accounts.stream()
-                .filter(AuthlibInjectorAccount.class::isInstance)
-                .map(AuthlibInjectorAccount.class::cast)
-                .filter(it -> !getAuthlibInjectorServers().contains(it.getServer()))
-                .filter(Accounts::canRemoveAccount)
-                .collect(toList())
-                .forEach(accounts::remove);
-    }
-    // ====
-
     // ==== Login type name i18n ===
     private static final Map<AccountFactory<?>, String> unlocalizedLoginTypeNames = mapOf(
             pair(Accounts.FACTORY_OFFLINE, "account.methods.offline"),
-            pair(Accounts.FACTORY_AUTHLIB_INJECTOR, "account.methods.authlib_injector"),
             pair(Accounts.FACTORY_MICROSOFT, "account.methods.microsoft"));
 
     public static String getLocalizedLoginTypeName(AccountFactory<?> factory) {
@@ -547,8 +469,6 @@ public final class Accounts {
                 }
             }
             return exception.getMessage();
-        } else if (exception instanceof AuthlibInjectorDownloadException) {
-            return i18n("account.failed.injector_download_failure");
         } else if (exception instanceof CharacterDeletedException) {
             return i18n("account.failed.character_deleted");
         } else if (exception instanceof InvalidSkinException) {

@@ -17,85 +17,19 @@
  */
 package org.jackhuang.hmcl.terracotta;
 
-import com.google.gson.JsonParseException;
-import org.jackhuang.hmcl.util.StringUtils;
-import org.jackhuang.hmcl.util.gson.JsonSerializable;
-import org.jackhuang.hmcl.util.gson.JsonUtils;
-import org.jackhuang.hmcl.util.gson.TolerableValidationException;
-import org.jackhuang.hmcl.util.gson.Validation;
-import org.jackhuang.hmcl.util.i18n.LocaleUtils;
-import org.jackhuang.hmcl.util.io.HttpRequest;
-import org.jetbrains.annotations.Nullable;
-
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.List;
 
-import static org.jackhuang.hmcl.util.logging.Logger.LOG;
-
+/// Provides the list of Terracotta node download endpoints.
+///
 /// @author Glavo
 public final class TerracottaNodeList {
-    private static final String NODE_LIST_URL = "https://terracotta.glavo.site/nodes";
 
-    @JsonSerializable
-    private record TerracottaNode(String url, @Nullable String region) implements Validation {
-        @Override
-        public void validate() throws JsonParseException, TolerableValidationException {
-            Validation.requireNonNull(url, "TerracottaNode.url cannot be null");
-            try {
-                new URI(url);
-            } catch (URISyntaxException e) {
-                throw new JsonParseException("Invalid URL: " + url, e);
-            }
-        }
-    }
-
-    private static volatile List<URI> list;
-
+    /// Returns the list of Terracotta node URLs.
+    ///
+    /// Node discovery has been removed, so this always returns an empty list.
     public static List<URI> fetch() {
-        List<URI> list = TerracottaNodeList.list;
-        if (list != null)
-            return list;
-
-        synchronized (TerracottaNodeList.class) {
-            list = TerracottaNodeList.list;
-            if (list != null)
-                return list;
-
-            try {
-                List<TerracottaNode> nodes = HttpRequest.GET(NODE_LIST_URL)
-                        .getJson(JsonUtils.listTypeOf(TerracottaNode.class));
-
-                if (nodes == null) {
-                    list = List.of();
-                    LOG.info("No available Terracotta nodes found");
-                } else {
-                    list = nodes.stream()
-                            .filter(node -> {
-                                if (node == null)
-                                    return false;
-
-                                try {
-                                    node.validate();
-                                } catch (Exception e) {
-                                    LOG.warning("Invalid terracotta node: " + node, e);
-                                    return false;
-                                }
-
-                                return StringUtils.isBlank(node.region) || LocaleUtils.IS_CHINA_MAINLAND == "CN".equalsIgnoreCase(node.region);
-                            })
-                            .map(it -> URI.create(it.url()))
-                            .toList();
-                    LOG.info("Terracotta node list: " + list);
-                }
-            } catch (Exception e) {
-                LOG.warning("Failed to fetch terracotta node list", e);
-                list = List.of();
-            }
-
-            TerracottaNodeList.list = list;
-            return list;
-        }
+        return List.of();
     }
 
     private TerracottaNodeList() {

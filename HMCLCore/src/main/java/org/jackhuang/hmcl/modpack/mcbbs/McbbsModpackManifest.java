@@ -404,19 +404,7 @@ public class McbbsModpackManifest implements ModpackManifest, Validation {
     }
 
     public static class ServerInfo {
-        private final String authlibInjectorServer;
-
         public ServerInfo() {
-            this(null);
-        }
-
-        public ServerInfo(String authlibInjectorServer) {
-            this.authlibInjectorServer = authlibInjectorServer;
-        }
-
-        @Nullable
-        public String getAuthlibInjectorServer() {
-            return authlibInjectorServer;
         }
     }
 

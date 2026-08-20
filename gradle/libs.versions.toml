@@ -17,7 +17,6 @@ fxsvgimage = "1.3"
 jna = "5.18.1"
 pci-ids = "0.4.0"
 java-info = "1.0"
-authlib-injector = "1.2.8"
 lwjgl-unsafe-agent = "2.0"
 monet-fx = "0.4.0"
 terracotta = "0.4.2"
@@ -56,7 +55,6 @@ jna = { module = "net.java.dev.jna:jna", version.ref = "jna" }
 jna-platform = { module = "net.java.dev.jna:jna-platform", version.ref = "jna" }
 pci-ids = { module = "org.glavo:pci-ids", version.ref = "pci-ids" }
 java-info = { module = "org.glavo:java-info", version.ref = "java-info" }
-authlib-injector = { module = "org.glavo.hmcl:authlib-injector", version.ref = "authlib-injector" }
 lwjgl-unsafe-agent = { module = "org.glavo:lwjgl-unsafe-agent", version.ref = "lwjgl-unsafe-agent" }
 monet-fx = { module = "org.glavo:MonetFX", version.ref = "monet-fx" }
 nayuki-qrcodegen = { module = "io.nayuki:qrcodegen", version.ref = "nayuki-qrcodegen" }

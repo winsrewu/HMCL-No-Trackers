@@ -22,7 +22,6 @@ import javafx.application.Platform;
 import javafx.stage.FileChooser;
 import org.jackhuang.hmcl.addon.RemoteAddon;
 import org.jackhuang.hmcl.auth.Account;
-import org.jackhuang.hmcl.auth.authlibinjector.AuthlibInjectorAccount;
 import org.jackhuang.hmcl.download.DefaultDependencyManager;
 import org.jackhuang.hmcl.download.DownloadProvider;
 import org.jackhuang.hmcl.download.game.GameAssetDownloadTask;
@@ -352,19 +351,7 @@ public final class Instances {
 
     private static void ensureSelectedAccount(Consumer<Account> action) {
         Account account = Accounts.getSelectedAccount();
-        if (SettingsManager.isNewlyCreated() && !AuthlibInjectorServers.getServers().isEmpty() &&
-                !(account instanceof AuthlibInjectorAccount && AuthlibInjectorServers.getServers().contains(((AuthlibInjectorAccount) account).getServer()))) {
-            CreateAccountPane dialog = new CreateAccountPane(AuthlibInjectorServers.getServers().iterator().next());
-            dialog.addEventHandler(DialogCloseEvent.CLOSE, e -> {
-                Account newAccount = Accounts.getSelectedAccount();
-                if (newAccount == null) {
-                    // user cancelled operation
-                } else {
-                    Platform.runLater(() -> action.accept(newAccount));
-                }
-            });
-            Controllers.dialog(dialog);
-        } else if (account == null) {
+        if (account == null) {
             CreateAccountPane dialog = new CreateAccountPane();
             dialog.addEventHandler(DialogCloseEvent.CLOSE, e -> {
                 Account newAccount = Accounts.getSelectedAccount();

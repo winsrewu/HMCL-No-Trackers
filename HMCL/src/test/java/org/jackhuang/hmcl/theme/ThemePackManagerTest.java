@@ -69,7 +69,7 @@ public final class ThemePackManagerTest {
             Files.write(wallpaper, body);
             Files.writeString(themeDirectory.resolve(ThemePackExporter.MANIFEST_ENTRY), """
                     {
-                      "$schema": "https://schemas.glavo.site/hmcl/theme-pack/1.0.0",
+                      "$schema": "hmcl-notrackers/theme-pack/1.0.0",
                       "id": "example.unpacked-export",
                       "version": "1.0.0",
                       "name": "Unpacked",

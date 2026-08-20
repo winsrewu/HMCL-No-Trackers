@@ -20,8 +20,6 @@ package org.jackhuang.hmcl.ui.account;
 import com.jfoenix.controls.JFXButton;
 import com.jfoenix.controls.JFXComboBox;
 import com.jfoenix.controls.JFXDialogLayout;
-import com.jfoenix.controls.JFXTextField;
-import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
 import javafx.geometry.Insets;
@@ -29,7 +27,6 @@ import javafx.scene.control.Label;
 import javafx.scene.input.DragEvent;
 import javafx.scene.input.TransferMode;
 import javafx.scene.layout.*;
-import javafx.util.Duration;
 import org.jackhuang.hmcl.auth.offline.OfflineAccount;
 import org.jackhuang.hmcl.auth.offline.Skin;
 import org.jackhuang.hmcl.auth.yggdrasil.TextureModel;
@@ -56,7 +53,6 @@ public class OfflineAccountSkinPane extends StackPane {
     private final OfflineAccount account;
 
     private final MultiFileItem<Skin.Type> skinItem = new MultiFileItem<>();
-    private final JFXTextField cslApiField = new JFXTextField();
     private final JFXComboBox<TextureModel> modelCombobox = new JFXComboBox<>();
     private final FileSelector skinSelector = new FileSelector();
     private final FileSelector capeSelector = new FileSelector();
@@ -105,21 +101,14 @@ public class OfflineAccountSkinPane extends StackPane {
         skinSelector.setMaxWidth(Double.MAX_VALUE);
         capeSelector.setMaxWidth(Double.MAX_VALUE);
         modelCombobox.setMaxWidth(Double.MAX_VALUE);
-        cslApiField.setMaxWidth(Double.MAX_VALUE);
 
         layout.setBody(pane);
-
-        cslApiField.setPromptText(i18n("account.skin.type.csl_api.location.hint"));
-        cslApiField.setValidators(new URLValidator());
-        FXUtils.setValidateWhileTextChanged(cslApiField, true);
 
         skinItem.loadChildren(Arrays.asList(
                 new MultiFileItem.Option<>(i18n("message.default"), Skin.Type.DEFAULT),
                 new MultiFileItem.Option<>(i18n("account.skin.type.steve"), Skin.Type.STEVE),
                 new MultiFileItem.Option<>(i18n("account.skin.type.alex"), Skin.Type.ALEX),
-                new MultiFileItem.Option<>(i18n("account.skin.type.local_file"), Skin.Type.LOCAL_FILE),
-                new MultiFileItem.Option<>(i18n("account.skin.type.little_skin"), Skin.Type.LITTLE_SKIN),
-                new MultiFileItem.Option<>(i18n("account.skin.type.csl_api"), Skin.Type.CUSTOM_SKIN_LOADER_API)
+                new MultiFileItem.Option<>(i18n("account.skin.type.local_file"), Skin.Type.LOCAL_FILE)
         ));
 
         modelCombobox.setConverter(stringConverter(model -> i18n("account.skin.model." + model.modelName)));
@@ -130,13 +119,10 @@ public class OfflineAccountSkinPane extends StackPane {
             modelCombobox.setValue(TextureModel.WIDE);
         } else {
             skinItem.setSelectedData(account.getSkin().type());
-            cslApiField.setText(account.getSkin().cslApi());
             modelCombobox.setValue(account.getSkin().textureModel());
             skinSelector.setValue(account.getSkin().localSkinPath());
             capeSelector.setValue(account.getSkin().localCapePath());
         }
-
-        PauseTransition pauseTransition = new PauseTransition(Duration.seconds(1));
 
         Runnable loadSkin = () -> {
             getSkin().load(account.getProfileName())
@@ -162,22 +148,9 @@ public class OfflineAccountSkinPane extends StackPane {
                     }).start();
         };
 
-        pauseTransition.setOnFinished(e -> loadSkin.run());
-
         skinBinding = FXUtils.observeWeak(() -> {
-            Skin.Type selectedType = skinItem.getSelectedData();
-
-            if (selectedType == Skin.Type.CUSTOM_SKIN_LOADER_API) {
-                if (!cslApiField.validate()) {
-                    pauseTransition.stop();
-                    return;
-                }
-                pauseTransition.playFromStart();
-            } else {
-                pauseTransition.stop();
-                loadSkin.run();
-            }
-        }, skinItem.selectedDataProperty(), cslApiField.textProperty(), modelCombobox.valueProperty(), skinSelector.valueProperty(), capeSelector.valueProperty());
+            loadSkin.run();
+        }, skinItem.selectedDataProperty(), modelCombobox.valueProperty(), skinSelector.valueProperty(), capeSelector.valueProperty());
 
         VBox right = new VBox();
         right.setPadding(new Insets(0, 0, 0, 10));
@@ -202,15 +175,6 @@ public class OfflineAccountSkinPane extends StackPane {
                     case ALEX:
                         break;
 
-                    case LITTLE_SKIN:
-                        HintPane hint = new HintPane(MessageDialogPane.MessageType.INFO);
-                        hint.setText(i18n("account.skin.type.little_skin.hint"));
-
-                        hint.setMaxWidth(Double.MAX_VALUE);
-
-                        right.getChildren().add(hint);
-                        break;
-
                     case LOCAL_FILE:
                         right.getChildren().addAll(
                             new Label(i18n("account.skin.model")),
@@ -219,13 +183,6 @@ public class OfflineAccountSkinPane extends StackPane {
                             skinSelector,
                             new Label(i18n("account.cape")),
                             capeSelector
-                        );
-                        break;
-
-                    case CUSTOM_SKIN_LOADER_API:
-                        right.getChildren().addAll(
-                            new Label(i18n("account.skin.type.csl_api.location")),
-                            cslApiField
                         );
                         break;
                 }
@@ -245,27 +202,20 @@ public class OfflineAccountSkinPane extends StackPane {
             fireEvent(new DialogCloseEvent());
         });
 
-        JFXHyperlink littleSkinLink = new JFXHyperlink(i18n("account.skin.type.little_skin"));
-        littleSkinLink.setOnAction(e -> FXUtils.openLink("https://littleskin.cn/"));
         JFXButton cancelButton = new JFXButton(i18n("button.cancel"));
         cancelButton.getStyleClass().add("dialog-cancel");
         cancelButton.setOnAction(e -> fireEvent(new DialogCloseEvent()));
         onEscPressed(this, cancelButton::fire);
 
-        acceptButton.disableProperty().bind(
-                skinItem.selectedDataProperty().isEqualTo(Skin.Type.CUSTOM_SKIN_LOADER_API)
-                        .and(cslApiField.activeValidatorProperty().isNotNull()));
-
-        layout.setActions(littleSkinLink, acceptButton, cancelButton);
+        layout.setActions(acceptButton, cancelButton);
     }
 
     private Skin getSkin() {
         Skin.Type type = skinItem.getSelectedData();
         if (type == Skin.Type.LOCAL_FILE) {
-            return new Skin(type, cslApiField.getText(), modelCombobox.getValue(), skinSelector.getValue(), capeSelector.getValue());
+            return new Skin(type, modelCombobox.getValue(), skinSelector.getValue(), capeSelector.getValue());
         } else {
-            String cslApi = type == Skin.Type.CUSTOM_SKIN_LOADER_API ? cslApiField.getText() : null;
-            return new Skin(type, cslApi, null, null, null);
+            return new Skin(type, null, null, null);
         }
     }
 }

@@ -148,7 +148,6 @@ public class McbbsModpackExportTask extends Task<Void> {
             .requireUrl()
             .requireForceUpdate()
             .requireMinMemory()
-            .requireAuthlibInjectorServer()
             .requireJavaArguments()
             .requireLaunchArguments()
             .requireOrigins()

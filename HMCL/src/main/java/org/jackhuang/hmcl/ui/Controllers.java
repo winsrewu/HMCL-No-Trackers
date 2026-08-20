@@ -52,7 +52,6 @@ import org.jackhuang.hmcl.ui.terracotta.TerracottaPage;
 import org.jackhuang.hmcl.ui.instances.GameListPage;
 import org.jackhuang.hmcl.ui.instances.GameInstancePage;
 import org.jackhuang.hmcl.ui.instances.Instances;
-import org.jackhuang.hmcl.upgrade.UpdateChecker;
 import org.jackhuang.hmcl.util.*;
 import org.jackhuang.hmcl.util.i18n.I18n;
 import org.jackhuang.hmcl.util.i18n.SupportedLocale;
@@ -71,7 +70,6 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
 import static org.jackhuang.hmcl.setting.SettingsManager.settings;
-import static org.jackhuang.hmcl.setting.SettingsManager.getAuthlibInjectorServers;
 import static org.jackhuang.hmcl.setting.SettingsManager.state;
 import static org.jackhuang.hmcl.setting.SettingsManager.userState;
 import static org.jackhuang.hmcl.util.i18n.I18n.i18n;
@@ -93,7 +91,6 @@ public final class Controllers {
         AccountListPage accountListPage = new AccountListPage();
         accountListPage.selectedAccountProperty().bindBidirectional(Accounts.selectedAccountProperty());
         accountListPage.accountsProperty().bindContent(Accounts.getAccounts());
-        accountListPage.authServersProperty().bindContentBidirectional(getAuthlibInjectorServers());
         return accountListPage;
     });
     private static LauncherSettingsPage settingsPage;
@@ -226,12 +223,6 @@ public final class Controllers {
 
         decorator = new Decorator(getRootPage());
         Scene mainScene = decorator.attachStage(stage);
-        getRootPage().getMainPage().showUpdateProperty().bind(UpdateChecker.checkingUpdateProperty().not().and(UpdateChecker.outdatedProperty()));
-        getRootPage().getMainPage().showUpdateDialogProperty().bind(
-                decorator.backableProperty().not()
-                        .and(getRootPage().getMainPage().showUpdateProperty())
-                        .and(settings().disableAutoShowUpdateDialogProperty().not())
-        );
 
         if (settings().commonDirectoryTypeProperty().get() == EnumCommonDirectory.CUSTOM &&
                 !FileUtils.canCreateDirectory(settings().getResolvedCommonDirectory())) {
@@ -309,8 +300,6 @@ public final class Controllers {
             JFXDialogLayout agreementPane = new JFXDialogLayout();
             agreementPane.setHeading(new Label(i18n("launcher.agreement")));
             agreementPane.setBody(new Label(i18n("launcher.agreement.hint")));
-            JFXHyperlink agreementLink = new JFXHyperlink(i18n("launcher.agreement"));
-            agreementLink.setExternalLink(Metadata.EULA_URL);
             JFXButton yesButton = new JFXButton(i18n("launcher.agreement.accept"));
             yesButton.getStyleClass().add("dialog-accept");
             yesButton.setOnAction(e -> {
@@ -321,7 +310,7 @@ public final class Controllers {
             JFXButton noButton = new JFXButton(i18n("launcher.agreement.decline"));
             noButton.getStyleClass().add("dialog-cancel");
             noButton.setOnAction(e -> javafx.application.Platform.exit());
-            agreementPane.setActions(agreementLink, yesButton, noButton);
+            agreementPane.setActions(yesButton, noButton);
             Controllers.dialog(agreementPane);
         }
 

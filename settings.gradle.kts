@@ -1,4 +1,4 @@
-rootProject.name = "HMCL3"
+rootProject.name = "HMCL-No-Trackers"
 include(
     "HMCL",
     "HMCLCore",

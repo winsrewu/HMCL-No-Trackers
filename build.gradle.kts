@@ -1,4 +1,3 @@
-import org.jackhuang.hmcl.gradle.ci.CheckUpdate
 import org.jackhuang.hmcl.gradle.docs.UpdateDocuments
 import org.jackhuang.hmcl.gradle.l10n.ParseLanguageSubtagRegistry
 
@@ -8,7 +7,7 @@ plugins {
 }
 
 group = "org.jackhuang"
-version = "3.0"
+version = "3.0-nt"
 
 subprojects {
     apply {
@@ -89,12 +88,4 @@ tasks.register<ParseLanguageSubtagRegistry>("parseLanguageSubtagRegistry") {
 
 tasks.register<UpdateDocuments>("updateDocuments") {
     documentsDir.set(layout.projectDirectory.dir("docs"))
-}
-
-tasks.register<CheckUpdate>("checkUpdateDev") {
-    uri.set("https://ci.huangyuhui.net/job/HMCL-nightly")
-}
-
-tasks.register<CheckUpdate>("checkUpdateStable") {
-    uri.set("https://ci.huangyuhui.net/job/HMCL-stable")
 }

@@ -28,7 +28,6 @@ import org.jackhuang.hmcl.util.gson.JsonUtils;
 import org.jackhuang.hmcl.util.i18n.LocaleUtils;
 import org.jackhuang.hmcl.util.i18n.LocalizedText;
 import org.jackhuang.hmcl.util.io.FileUtils;
-import org.jackhuang.hmcl.util.io.NetworkUtils;
 import org.jackhuang.hmcl.util.platform.Architecture;
 import org.jackhuang.hmcl.util.platform.OSVersion;
 import org.jackhuang.hmcl.util.platform.OperatingSystem;
@@ -110,10 +109,7 @@ public final class TerracottaMetadata {
     public static final AbstractTerracottaProvider PROVIDER;
     public static final String PACKAGE_NAME;
     public static final List<Link> PACKAGE_LINKS;
-    public static final String FEEDBACK_LINK = NetworkUtils.withQuery("https://docs.hmcl.net/multiplayer/feedback.html", Map.of(
-            "v", "v1",
-            "launcher_version", Metadata.VERSION
-    ));
+    public static final String FEEDBACK_LINK = "";
 
     private static final String LATEST;
 

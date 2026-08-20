@@ -23,7 +23,6 @@ import org.jackhuang.hmcl.auth.Account;
 import org.jackhuang.hmcl.auth.AccountFactory;
 import org.jackhuang.hmcl.auth.AccountID;
 import org.jackhuang.hmcl.auth.CharacterSelector;
-import org.jackhuang.hmcl.auth.authlibinjector.AuthlibInjectorArtifactProvider;
 import org.jackhuang.hmcl.util.gson.JsonUtils;
 
 import java.util.UUID;
@@ -35,11 +34,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
  * @author huangyuhui
  */
 public final class OfflineAccountFactory extends AccountFactory<OfflineAccount> {
-    private final AuthlibInjectorArtifactProvider downloader;
-
-    public OfflineAccountFactory(AuthlibInjectorArtifactProvider downloader) {
-        this.downloader = downloader;
-    }
 
     @Override
     public AccountLoginType getLoginType() {
@@ -47,7 +41,7 @@ public final class OfflineAccountFactory extends AccountFactory<OfflineAccount> 
     }
 
     public OfflineAccount create(String username, UUID uuid) {
-        return new OfflineAccount(AccountID.generate(), downloader, username, uuid, null);
+        return new OfflineAccount(AccountID.generate(), username, uuid, null);
     }
 
     @Override
@@ -63,7 +57,7 @@ public final class OfflineAccountFactory extends AccountFactory<OfflineAccount> 
             uuid = getUUIDFromUserName(username);
             skin = null;
         }
-        return new OfflineAccount(AccountID.generate(), downloader, username, uuid, skin);
+        return new OfflineAccount(AccountID.generate(), username, uuid, skin);
     }
 
     @Override
@@ -79,7 +73,7 @@ public final class OfflineAccountFactory extends AccountFactory<OfflineAccount> 
                 : getUUIDFromUserName(profileName);
         Skin skin = Skin.fromStorage(metadata.get("skin") instanceof JsonObject skinObject ? skinObject : null);
 
-        return new OfflineAccount(accountID, downloader, profileName, profileID, skin);
+        return new OfflineAccount(accountID, profileName, profileID, skin);
     }
 
     public static UUID getUUIDFromUserName(String username) {

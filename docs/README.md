@@ -7,26 +7,33 @@
 <h1 align="center">Hello Minecraft! Launcher</h1>
 <!-- #END BLOCK -->
 
-<!-- #BEGIN BLOCK -->
-<!-- #PROPERTY NAME=BADGES -->
-<div align="center">
-
-[![GitHub](https://img.shields.io/badge/GitHub-repo-blue?style=flat-square&logo=github)](https://github.com/HMCL-dev/HMCL)
-[![CNB](https://img.shields.io/badge/CNB-mirror-ff6200?style=flat-square&logo=cloudnativebuild)](https://cnb.cool/HMCL-dev/HMCL)
-[![Gitee](https://img.shields.io/badge/Gitee-mirror-c71d23?style=flat-square&logo=gitee)](https://gitee.com/huanghongxun/HMCL)
-
-[![QQ Group](https://img.shields.io/badge/QQ-gray?style=flat-square&logo=qq&logoColor=ffffff)](https://docs.hmcl.net/groups.html)
-[![Discord](https://img.shields.io/badge/Discord-gray?style=flat-square&logo=discord)](https://discord.gg/jVvC7HfM6U)
-[![Bilibili](https://img.shields.io/badge/Bilibili-gray?style=flat-square&logo=bilibili)](https://space.bilibili.com/20314891)
-
-</div>
-<!-- #END BLOCK -->
-
 ---
 
 <!-- #BEGIN LANGUAGE_SWITCHER -->
 **English** (**Standard**, [uʍoᗡ ǝpᴉsd∩](README_en_Qabs.md)) | 中文 ([简体](README_zh.md), [繁體](README_zh_Hant.md), [文言](README_lzh.md)) | [日本語](README_ja.md) | [español](README_es.md) | [русский](README_ru.md) | [українська](README_uk.md)
 <!-- #END LANGUAGE_SWITCHER -->
+
+## Purpose of the Fork
+To remove any unnecessory third-party services, while keep up to date with the original main branch.
+
+## Warning
+
+Convenience is sacrificed for privacy. So network issues may occur, and some features are unavailable.
+
+The following third-party services and features have been removed:
+
+- **Download mirrors** — BMCLAPI (`bmclapi2.bangbang93.com`), Tencent Cloud Maven, `mod.mcimirror.top`, and `alist.8mi.tech`. All downloads now use official Mojang sources only; failures are reported as errors instead of falling back to a mirror.
+- **authlib-injector** — the entire third-party Yggdrasil authentication feature (external login, server list, drag-and-drop protocol, and the bundled jar) has been removed.
+- **Skin services** — LittleSkin (`littleskin.cn`) and CustomSkinLoader are removed. Offline accounts only support built-in and local-file skins; in-game skin injection is no longer available.
+- **Auto-update** — the update channel and download source (`hmcl.huangyuhui.net`) are removed. Updates must be built manually.
+- **Help/documentation links** — `docs.hmcl.net` is removed.
+- **Terracotta node discovery** — `terracotta.glavo.site` is removed, so the built-in multiplayer feature can no longer discover relay nodes automatically.
+- **HMCL-hosted metadata** — `hmcl.glavo.site` is removed, so the Forge, Cleanroom, and legacy FML-libs version lists are now empty. The JSON schema namespace is now the local identifier `hmcl-notrackers/` instead of `schemas.glavo.site`.
+- **Forge** - lagacy version listing is unavailable.
+- **OptiFine** — version listing is unavailable (it relied solely on BMCLAPI).
+
+## Download
+Build yourself.
 
 ## Introduction
 
@@ -40,7 +47,6 @@ For systems and CPU architectures supported by HMCL, please refer to [this table
 
 You can download HMCL from the following sources:
 
-- [HMCL Official Website](https://hmcl.huangyuhui.net/download)
 - [GitHub Release](https://github.com/HMCL-dev/HMCL/releases)
 - [CNB Release](https://cnb.cool/HMCL-dev/HMCL/-/releases)
 

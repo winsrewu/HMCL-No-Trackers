@@ -34,7 +34,6 @@ import org.jackhuang.hmcl.ui.wizard.WizardController;
 import org.jackhuang.hmcl.ui.wizard.WizardProvider;
 import org.jackhuang.hmcl.util.Lang;
 import org.jackhuang.hmcl.util.SettingsMap;
-import org.jackhuang.hmcl.util.gson.JsonUtils;
 import org.jackhuang.hmcl.util.io.JarUtils;
 import org.jackhuang.hmcl.util.io.Zipper;
 
@@ -131,11 +130,6 @@ public final class ExportWizardProvider implements WizardProvider {
                     exported.preferredLoginTypeProperty().set(current.preferredLoginTypeProperty().get());
 
                     zip.putTextFile(exported.toJson(), ".hmcl/config/launcher-settings.json");
-                    AuthlibInjectorServerList exportedServers = new AuthlibInjectorServerList();
-                    exportedServers.getServers().setAll(SettingsManager.getAuthlibInjectorServers());
-                    zip.putTextFile(
-                            JsonUtils.GSON.toJson(exportedServers, AuthlibInjectorServerList.class),
-                            ".hmcl/config/authlib-injector-servers.json");
                     zip.putFile(tempModpack, ModpackTypeSelectionPage.MODPACK_TYPE_MODRINTH.equals(modpackType)
                             ? "modpack.mrpack"
                             : "modpack.zip");

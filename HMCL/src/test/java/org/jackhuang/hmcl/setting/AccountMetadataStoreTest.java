@@ -651,14 +651,7 @@ public final class AccountMetadataStoreTest {
                         "displayName", "Steve",
                         "accessToken", "yggdrasil-access-token",
                         "clientToken", "client-token",
-                        "userProperties", Map.of("preferredLanguage", "en_US")),
-                jsonObject(
-                        "type", "authlibInjector",
-                        "serverBaseURL", "https://example.invalid/api/yggdrasil",
-                        "username", "steve@example.com",
-                        "uuid", "00000000000000000000000000000003",
-                        "displayName", "Steve",
-                        "profileProperties", Map.of("textures", "texture-data"))
+                        "userProperties", Map.of("preferredLanguage", "en_US"))
         ));
         AccountPrivateData privateData = migratedAccounts.privateData();
 
@@ -690,15 +683,6 @@ public final class AccountMetadataStoreTest {
         assertEquals("Steve", JsonUtils.getString(yggdrasilPrivateData, "profileName"));
         assertEquals("en_US",
                 JsonUtils.getString(yggdrasilPrivateData.getAsJsonObject("userProperties"), "preferredLanguage"));
-
-        JsonObject authlibInjectorMetadata = migratedAccounts.metadata().getAccounts().get(2);
-        AccountID authlibInjectorAccountID = Objects.requireNonNull(Account.getAccountID(authlibInjectorMetadata));
-        assertFalse(authlibInjectorMetadata.has("profileName"));
-        assertFalse(authlibInjectorMetadata.has("profileProperties"));
-        JsonObject authlibInjectorPrivateData = privateData.getPrivateData().get(authlibInjectorAccountID);
-        assertEquals("Steve", JsonUtils.getString(authlibInjectorPrivateData, "profileName"));
-        assertEquals("texture-data",
-                JsonUtils.getString(authlibInjectorPrivateData.getAsJsonObject("profileProperties"), "textures"));
     }
 
     /// Tests finding private fields from the first matching private data store.

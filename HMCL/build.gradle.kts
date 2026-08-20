@@ -71,7 +71,6 @@ dependencies {
         implementation(libs.hmclauncher)
     }
 
-    embedResources(libs.authlib.injector)
     embedResources(libs.lwjgl.unsafe.agent)
 }
 
@@ -161,7 +160,6 @@ val hmclProperties = buildList {
     add("hmcl.version.type" to versionType)
     add("hmcl.microsoft.auth.id" to microsoftAuthId)
     add("hmcl.curseforge.apikey" to curseForgeApiKey)
-    add("hmcl.authlib-injector.version" to libs.authlib.injector.get().version!!)
     add("hmcl.lwjgl-unsafe-agent.version" to libs.lwjgl.unsafe.agent.get().version!!)
 }
 

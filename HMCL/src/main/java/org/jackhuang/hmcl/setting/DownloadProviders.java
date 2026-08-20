@@ -23,7 +23,6 @@ import org.jackhuang.hmcl.task.DownloadException;
 import org.jackhuang.hmcl.task.FetchTask;
 import org.jackhuang.hmcl.util.StringUtils;
 import org.jackhuang.hmcl.util.i18n.I18n;
-import org.jackhuang.hmcl.util.i18n.LocaleUtils;
 import org.jackhuang.hmcl.util.io.ResponseCodeException;
 
 import javax.net.ssl.SSLHandshakeException;
@@ -45,12 +44,9 @@ public final class DownloadProviders {
     private static final DownloadProviderWrapper PROVIDER_WRAPPER;
 
     private static final DownloadProvider MOJANG_PROVIDER;
-    private static final BMCLAPIDownloadProvider BMCLAPI_PROVIDER;
     private static final DownloadProvider DEFAULT_PROVIDER;
 
     static {
-        String bmclapiRoot = System.getProperty("hmcl.bmclapi.override", "https://bmclapi2.bangbang93.com");
-        BMCLAPI_PROVIDER = new BMCLAPIDownloadProvider(bmclapiRoot);
         MOJANG_PROVIDER = new MojangDownloadProvider();
         DEFAULT_PROVIDER = createDownloadProvider(DownloadSource.DEFAULT, DownloadSource.DEFAULT);
         PROVIDER_WRAPPER = new DownloadProviderWrapper(DEFAULT_PROVIDER);
@@ -84,16 +80,9 @@ public final class DownloadProviders {
                 getCandidates(fileDownloadSource));
     }
 
-    /// Returns provider candidates ordered by the given source preference.
+    /// Returns provider candidates for the given source preference.
     private static List<DownloadProvider> getCandidates(DownloadSource source) {
-        DownloadSource normalized = source != null ? source : DownloadSource.DEFAULT;
-        return switch (normalized) {
-            case DEFAULT -> LocaleUtils.IS_CHINA_MAINLAND
-                    ? List.of(BMCLAPI_PROVIDER, MOJANG_PROVIDER)
-                    : List.of(MOJANG_PROVIDER, BMCLAPI_PROVIDER);
-            case OFFICIAL -> List.of(MOJANG_PROVIDER);
-            case MIRROR -> List.of(BMCLAPI_PROVIDER, MOJANG_PROVIDER);
-        };
+        return List.of(MOJANG_PROVIDER);
     }
 
     /**

@@ -155,7 +155,7 @@ public final class GameLibrariesTask extends Task<Void> {
 
                     for (FMLLib fmlLib : fmlLibs) {
                         Path file = libDir.resolve(fmlLib.name);
-                        if (shouldDownloadFMLLib(fmlLib, file)) {
+                        if (fmlLib.downloadUrl() != null && shouldDownloadFMLLib(fmlLib, file)) {
                             List<URI> uris = dependencyManager.getDownloadProvider()
                                     .injectURLWithCandidates(fmlLib.downloadUrl());
                             dependencies.add(new FileDownloadTask(uris, file)
@@ -225,7 +225,7 @@ public final class GameLibrariesTask extends Task<Void> {
 
     private record FMLLib(String name, String sha1, String downloadUrl) {
         FMLLib(String name, String sha1) {
-            this(name, sha1, "https://hmcl.glavo.site/metadata/fmllibs/" + name);
+            this(name, sha1, null);
         }
     }
 }

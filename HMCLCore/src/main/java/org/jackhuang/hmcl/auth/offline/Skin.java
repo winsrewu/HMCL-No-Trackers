@@ -18,31 +18,18 @@
 package org.jackhuang.hmcl.auth.offline;
 
 import com.google.gson.JsonObject;
-import com.google.gson.annotations.SerializedName;
 import javafx.scene.image.Image;
 import org.jackhuang.hmcl.auth.yggdrasil.TextureModel;
-import org.jackhuang.hmcl.task.FetchTask;
-import org.jackhuang.hmcl.task.GetTask;
 import org.jackhuang.hmcl.task.Task;
-import org.jackhuang.hmcl.util.Lang;
-import org.jackhuang.hmcl.util.StringUtils;
 import org.jackhuang.hmcl.util.gson.JsonUtils;
 import org.jackhuang.hmcl.util.io.FileUtils;
-import org.jackhuang.hmcl.util.io.NetworkUtils;
-import org.jackhuang.hmcl.util.io.UrlResponseInfo;
-import org.jetbrains.annotations.Nullable;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 
-public record Skin(Type type, String cslApi, TextureModel textureModel, String localSkinPath, String localCapePath) {
+public record Skin(Type type, TextureModel textureModel, String localSkinPath, String localCapePath) {
 
     public enum Type {
         DEFAULT,
@@ -55,10 +42,7 @@ public record Skin(Type type, String cslApi, TextureModel textureModel, String l
         STEVE,
         SUNNY,
         ZURI,
-        LOCAL_FILE,
-        LITTLE_SKIN,
-        CUSTOM_SKIN_LOADER_API,
-        YGGDRASIL_API;
+        LOCAL_FILE;
 
         public static Type fromStorage(String type) {
             return switch (type) {
@@ -73,9 +57,6 @@ public record Skin(Type type, String cslApi, TextureModel textureModel, String l
                 case "sunny" -> SUNNY;
                 case "zuri" -> ZURI;
                 case "local_file" -> LOCAL_FILE;
-                case "little_skin" -> LITTLE_SKIN;
-                case "custom_skin_loader_api" -> CUSTOM_SKIN_LOADER_API;
-                case "yggdrasil_api" -> YGGDRASIL_API;
                 default -> null;
             };
         }
@@ -116,44 +97,6 @@ public record Skin(Type type, String cslApi, TextureModel textureModel, String l
                     if (capePath.isPresent()) cape = Texture.loadTexture(Files.newInputStream(capePath.get()));
                     return new LoadedSkin(textureModel(), skin, cape);
                 });
-            case LITTLE_SKIN:
-            case CUSTOM_SKIN_LOADER_API:
-                String realCslApi = type == Type.LITTLE_SKIN
-                        ? "https://littleskin.cn/csl"
-                        : NetworkUtils.addHttpsIfMissing(StringUtils.removeSuffix(Lang.requireNonNullElse(cslApi, ""), "/"));
-                return Task.composeAsync(() -> new GetTask(String.format("%s/%s.json", realCslApi, username)))
-                        .thenComposeAsync(json -> {
-                            SkinJson result = JsonUtils.GSON.fromJson(json, SkinJson.class);
-
-                            if (!result.hasSkin()) {
-                                return Task.supplyAsync(() -> null);
-                            }
-
-                            return Task.allOf(
-                                    Task.supplyAsync(result::getModel),
-                                    result.getHash() == null ? Task.supplyAsync(() -> null) : new FetchBytesTask(String.format("%s/textures/%s", realCslApi, result.getHash())),
-                                    result.getCapeHash() == null ? Task.supplyAsync(() -> null) : new FetchBytesTask(String.format("%s/textures/%s", realCslApi, result.getCapeHash()))
-                            );
-                        }).thenApplyAsync(result -> {
-                            if (result == null) {
-                                return null;
-                            }
-
-                            Texture skin, cape;
-                            if (result.get(1) != null) {
-                                skin = Texture.loadTexture((InputStream) result.get(1));
-                            } else {
-                                skin = null;
-                            }
-
-                            if (result.get(2) != null) {
-                                cape = Texture.loadTexture((InputStream) result.get(2));
-                            } else {
-                                cape = null;
-                            }
-
-                            return new LoadedSkin((TextureModel) result.get(0), skin, cape);
-                        });
             default:
                 throw new UnsupportedOperationException();
         }
@@ -161,7 +104,6 @@ public record Skin(Type type, String cslApi, TextureModel textureModel, String l
 
     public void writeStorage(JsonObject storage) {
         storage.addProperty("type", type.name().toLowerCase(Locale.ROOT));
-        storage.addProperty("cslApi", cslApi);
         storage.addProperty("textureModel", textureModel().modelName);
         storage.addProperty("localSkinPath", localSkinPath);
         storage.addProperty("localCapePath", localCapePath);
@@ -175,111 +117,13 @@ public record Skin(Type type, String cslApi, TextureModel textureModel, String l
         if (type == null) {
             type = Type.DEFAULT;
         }
-        String cslApi = JsonUtils.getString(storage, "cslApi");
         String textureModel = JsonUtils.getString(storage, "textureModel", "default");
         String localSkinPath = JsonUtils.getString(storage, "localSkinPath");
         String localCapePath = JsonUtils.getString(storage, "localCapePath");
 
-        return new Skin(type, cslApi, "slim".equals(textureModel) ? TextureModel.SLIM : TextureModel.WIDE, localSkinPath, localCapePath);
-    }
-
-    private static class FetchBytesTask extends FetchTask<InputStream> {
-
-        public FetchBytesTask(String uri) {
-            super(List.of(NetworkUtils.toURI(uri)));
-        }
-
-        @Override
-        protected void useCachedResult(Path cachedFile) throws IOException {
-            setResult(Files.newInputStream(cachedFile));
-        }
-
-        @Override
-        protected EnumCheckETag shouldCheckETag() {
-            return EnumCheckETag.CHECK_E_TAG;
-        }
-
-        @Override
-        protected Context getContext(@Nullable UrlResponseInfo response, boolean checkETag, @Nullable String bmclapiHash) throws IOException {
-            return new Context() {
-                final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-
-                @Override
-                public void reset() throws IOException {
-                    baos.reset();
-                }
-
-                @Override
-                public void write(byte[] buffer, int offset, int len) {
-                    baos.write(buffer, offset, len);
-                }
-
-                @Override
-                public void close() throws IOException {
-                    if (!isSuccess()) return;
-
-                    setResult(new ByteArrayInputStream(baos.toByteArray()));
-
-                    if (checkETag) {
-                        repository.cacheBytes(response, baos.toByteArray());
-                    }
-                }
-            };
-        }
+        return new Skin(type, "slim".equals(textureModel) ? TextureModel.SLIM : TextureModel.WIDE, localSkinPath, localCapePath);
     }
 
     public record LoadedSkin(TextureModel model, Texture skin, Texture cape) {
-    }
-
-    private record SkinJson(String username, String skin, String cape, String elytra,
-                            @SerializedName(value = "textures", alternate = {"skins"}) TextureJson textures) {
-
-        public boolean hasSkin() {
-            return StringUtils.isNotBlank(username);
-        }
-
-        @Nullable
-        public TextureModel getModel() {
-            if (textures != null && textures.slim != null) {
-                return TextureModel.SLIM;
-            } else if (textures != null && textures.defaultSkin != null) {
-                return TextureModel.WIDE;
-            } else {
-                return null;
-            }
-        }
-
-        public String getAlexModelHash() {
-            if (textures != null && textures.slim != null) {
-                return textures.slim;
-            } else {
-                return null;
-            }
-        }
-
-        public String getSteveModelHash() {
-            if (textures != null && textures.defaultSkin != null) {
-                return textures.defaultSkin;
-            } else return skin;
-        }
-
-        public String getHash() {
-            TextureModel model = getModel();
-            if (model == TextureModel.SLIM)
-                return getAlexModelHash();
-            else if (model == TextureModel.WIDE)
-                return getSteveModelHash();
-            else
-                return null;
-        }
-
-        public String getCapeHash() {
-            if (textures != null && textures.cape != null) {
-                return textures.cape;
-            } else return cape;
-        }
-
-        public record TextureJson(@SerializedName("default") String defaultSkin, String slim, String cape, String elytra) {
-        }
     }
 }

@@ -52,7 +52,7 @@ public final class AboutPage extends SpinnerPane {
 
         ComponentList about = new ComponentList();
         {
-            var launcher = LineButton.createExternalLinkButton(Metadata.PUBLISH_URL);
+            var launcher = new LineButton();
             launcher.setLargeTitle(true);
             launcher.setLeading(FXUtils.newBuiltinImage("/assets/img/icon.png"));
             launcher.setTitle("Hello Minecraft! Launcher");
@@ -78,7 +78,7 @@ public final class AboutPage extends SpinnerPane {
             copyright.setTitle(i18n("about.copyright"));
             copyright.setSubtitle(i18n("about.copyright.statement"));
 
-            var claim = LineButton.createExternalLinkButton(Metadata.EULA_URL);
+            var claim = new LineButton();
             claim.setLargeTitle(true);
             claim.setTitle(i18n("about.claim"));
             claim.setSubtitle(i18n("about.claim.statement"));

@@ -877,7 +877,7 @@ public final class GameDirectoriesTest {
             Path location = tempDir.resolve("game-directories.json");
             Files.writeString(location, """
                     {
-                      "$schema": "https://schemas.glavo.site/hmcl/game-directories/1.1.0",
+                      "$schema": "hmcl-notrackers/game-directories/1.1.0",
                       "directories": []
                     }
                     """);
@@ -894,7 +894,7 @@ public final class GameDirectoriesTest {
             assertEquals(SettingFileAccess.READ_ONLY, result.access());
             assertFalse(result.value().isSavable());
             assertFalse(result.value().isBackupOnNextSave());
-            assertEquals(new JsonSchema("https://schemas.glavo.site/hmcl/game-directories/1.1.0"),
+            assertEquals(new JsonSchema("hmcl-notrackers/game-directories/1.1.0"),
                     result.value().getSchema());
         }
     }

@@ -26,7 +26,6 @@ import org.jackhuang.hmcl.download.legacyfabric.LegacyFabricAPIVersionList;
 import org.jackhuang.hmcl.download.legacyfabric.LegacyFabricVersionList;
 import org.jackhuang.hmcl.download.liteloader.LiteLoaderVersionList;
 import org.jackhuang.hmcl.download.neoforge.NeoForgeOfficialVersionList;
-import org.jackhuang.hmcl.download.optifine.OptiFineBMCLVersionList;
 import org.jackhuang.hmcl.download.quilt.QuiltAPIVersionList;
 import org.jackhuang.hmcl.download.quilt.QuiltVersionList;
 import org.jackhuang.hmcl.util.io.NetworkUtils;
@@ -46,16 +45,12 @@ public class MojangDownloadProvider implements DownloadProvider {
     private final NeoForgeOfficialVersionList neoforge;
     private final CleanroomVersionList cleanroom;
     private final LiteLoaderVersionList liteLoader;
-    private final OptiFineBMCLVersionList optifine;
     private final QuiltVersionList quilt;
     private final QuiltAPIVersionList quiltApi;
     private final LegacyFabricVersionList legacyFabric;
     private final LegacyFabricAPIVersionList legacyFabricApi;
 
     public MojangDownloadProvider() {
-        // If there is no official download channel available, fallback to BMCLAPI.
-        String apiRoot = "https://bmclapi2.bangbang93.com";
-
         this.game = new GameVersionList(this);
         this.fabric = new FabricVersionList(this);
         this.fabricApi = new FabricAPIVersionList(this);
@@ -63,7 +58,6 @@ public class MojangDownloadProvider implements DownloadProvider {
         this.neoforge = new NeoForgeOfficialVersionList(this);
         this.cleanroom = new CleanroomVersionList(this);
         this.liteLoader = new LiteLoaderVersionList(this);
-        this.optifine = new OptiFineBMCLVersionList(apiRoot);
         this.quilt = new QuiltVersionList(this);
         this.quiltApi = new QuiltAPIVersionList(this);
         this.legacyFabric = new LegacyFabricVersionList(this);
@@ -90,7 +84,6 @@ public class MojangDownloadProvider implements DownloadProvider {
             case "cleanroom" -> cleanroom;
             case "neoforge" -> neoforge;
             case "liteloader" -> liteLoader;
-            case "optifine" -> optifine;
             case "quilt" -> quilt;
             case "quilt-api" -> quiltApi;
             case "legacyfabric" -> legacyFabric;

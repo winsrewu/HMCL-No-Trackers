@@ -158,6 +158,6 @@ public final class JsonSchemaTest {
 
     /// Creates a schema URL string.
     private static String schemaUrl(String id, String version) {
-        return "https://schemas.glavo.site/hmcl/" + id + "/" + version;
+        return "hmcl-notrackers/" + id + "/" + version;
     }
 }

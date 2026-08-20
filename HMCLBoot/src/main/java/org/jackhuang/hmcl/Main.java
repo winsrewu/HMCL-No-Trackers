@@ -32,7 +32,6 @@ import java.util.ResourceBundle;
  */
 public final class Main {
     private static final int MINIMUM_JAVA_VERSION = 17;
-    private static final String DOWNLOAD_PAGE = "https://hmcl.huangyuhui.net/download/";
 
     private Main() {
     }
@@ -95,8 +94,7 @@ public final class Main {
                     JOptionPane.ERROR_MESSAGE, null, null, null);
 
             if (result == JOptionPane.YES_OPTION) {
-                System.out.println("Open " + DOWNLOAD_PAGE);
-                DesktopUtils.openLink(DOWNLOAD_PAGE);
+                // Manual update is disabled in this build.
             }
         } else {
             String errorMessage = resourceBundle.getString("boot.unsupported_java_version");

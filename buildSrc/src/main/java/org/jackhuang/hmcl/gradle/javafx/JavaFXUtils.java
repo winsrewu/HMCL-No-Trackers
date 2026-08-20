@@ -138,7 +138,7 @@ public final class JavaFXUtils {
     }
 
     private static void preTouchOpenJFXDependencies(Task task) {
-        String mirrorRepo = "https://mirrors.cloud.tencent.com/nexus/repository/maven-public";
+        String mirrorRepo = "https://repo1.maven.org/maven2";
 
         JavaFXPlatform.ALL.forEach((name, platform) -> {
             platform.getVersions().forEach((versionType, version) -> {

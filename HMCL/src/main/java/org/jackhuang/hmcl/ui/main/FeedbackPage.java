@@ -28,8 +28,6 @@ import org.jackhuang.hmcl.ui.construct.SpinnerPane;
 
 import static org.jackhuang.hmcl.util.i18n.I18n.i18n;
 
-import org.jackhuang.hmcl.Metadata;
-
 public class FeedbackPage extends SpinnerPane {
 
     private final WeakListenerHolder holder = new WeakListenerHolder();
@@ -44,19 +42,13 @@ public class FeedbackPage extends SpinnerPane {
 
         ComponentList groups = new ComponentList();
         {
-            var users = LineButton.createExternalLinkButton(Metadata.GROUPS_URL);
-            users.setLargeTitle(true);
-            users.setLeading(FXUtils.newBuiltinImage("/assets/img/icon.png"));
-            users.setTitle(i18n("contact.chat.qq_group"));
-            users.setSubtitle(i18n("contact.chat.qq_group.statement"));
-
             var discord = LineButton.createExternalLinkButton("https://discord.gg/jVvC7HfM6U");
             discord.setLargeTitle(true);
             discord.setLeading(FXUtils.newBuiltinImage("/assets/img/discord.png"));
             discord.setTitle(i18n("contact.chat.discord"));
             discord.setSubtitle(i18n("contact.chat.discord.statement"));
 
-            groups.getContent().setAll(users, discord);
+            groups.getContent().setAll(discord);
         }
 
         ComponentList feedback = new ComponentList();

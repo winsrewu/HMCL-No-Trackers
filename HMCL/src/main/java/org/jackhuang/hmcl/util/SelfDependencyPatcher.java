@@ -88,15 +88,11 @@ public final class SelfDependencyPatcher {
 
         final String customUrl = System.getProperty("hmcl.openjfx.repo");
         if (customUrl == null) {
-            if (System.getProperty("user.country", "").equalsIgnoreCase("CN")) {
-                defaultRepository = Repository.TENCENTCLOUD_MIRROR;
-            } else {
-                defaultRepository = Repository.MAVEN_CENTRAL;
-            }
-            repositories = List.of(Repository.MAVEN_CENTRAL, Repository.TENCENTCLOUD_MIRROR);
+            defaultRepository = Repository.MAVEN_CENTRAL;
+            repositories = List.of(Repository.MAVEN_CENTRAL);
         } else {
             defaultRepository = new Repository(String.format(i18n("repositories.custom"), customUrl), customUrl);
-            repositories = List.of(Repository.MAVEN_CENTRAL, Repository.TENCENTCLOUD_MIRROR, defaultRepository);
+            repositories = List.of(Repository.MAVEN_CENTRAL, defaultRepository);
         }
     }
 
@@ -146,7 +142,6 @@ public final class SelfDependencyPatcher {
 
     private record Repository(String name, String url) {
         public static final Repository MAVEN_CENTRAL = new Repository(i18n("repositories.maven_central"), "https://repo1.maven.org/maven2");
-        public static final Repository TENCENTCLOUD_MIRROR = new Repository(i18n("repositories.tencentcloud_mirror"), "https://mirrors.cloud.tencent.com/nexus/repository/maven-public");
 
         public String resolveDependencyURL(DependencyDescriptor descriptor) {
             return String.format("%s/%s/%s/%s/%s",

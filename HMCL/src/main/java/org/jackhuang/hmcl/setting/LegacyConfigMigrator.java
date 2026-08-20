@@ -204,7 +204,6 @@ public final class LegacyConfigMigrator {
                     : null;
 
             LauncherState launcherState = extractLauncherState(jsonObject);
-            AuthlibInjectorServerList authlibInjectorServers = extractAuthlibInjectorServers(jsonObject);
             AccountMigrationResult accountMigration = Objects.requireNonNullElseGet(
                     extractAccounts(jsonObject),
                     AccountMigrationResult::empty);
@@ -279,7 +278,7 @@ public final class LegacyConfigMigrator {
             migrateLegacyAllowAutoAgent(deserialized, gameSettingsPresets, legacyAllowAutoAgent);
             migrateLegacyDisableAutoGameOptions(deserialized, gameSettingsPresets, legacyDisableAutoGameOptions);
             DetachedSettings detachedSettings = new DetachedSettings(gameDirectories, gameSettingsPresets,
-                    launcherState, authlibInjectorServers, accountMigration);
+                    launcherState, accountMigration);
             return new LegacyConfigMigration(path, deserialized, detachedSettings);
         } catch (JsonParseException e) {
             LOG.warning("Malformed legacy config file: " + path, e);
@@ -429,32 +428,6 @@ public final class LegacyConfigMigrator {
         if (Double.isFinite(size)) {
             state.addProperty(name, Math.max(0.0, size));
         }
-    }
-
-    /// Extracts authlib-injector servers from a legacy config JSON object and removes those members.
-    static AuthlibInjectorServerList extractAuthlibInjectorServers(JsonObject json) {
-        Objects.requireNonNull(json);
-
-        JsonObject servers = new JsonObject();
-        servers.add(JsonSchema.PROPERTY_SCHEMA,
-                JsonUtils.GSON.toJsonTree(AuthlibInjectorServerList.CURRENT_SCHEMA, JsonSchema.class));
-        JsonElement authlibInjectorServers = json.remove("authlibInjectorServers");
-        if (authlibInjectorServers != null) {
-            servers.add("servers", authlibInjectorServers);
-        }
-        JsonElement addedLittleSkin = json.remove("addedLittleSkin");
-        boolean shouldAddLittleSkin = !(addedLittleSkin instanceof JsonPrimitive primitive
-                && primitive.isBoolean()
-                && primitive.getAsBoolean());
-
-        AuthlibInjectorServerList result = JsonUtils.GSON.fromJson(servers, AuthlibInjectorServerList.class);
-        if (result == null) {
-            result = new AuthlibInjectorServerList();
-        }
-        if (shouldAddLittleSkin) {
-            result.addLittleSkinIfAbsent();
-        }
-        return result;
     }
 
     /// Extracts account metadata and private data from a config JSON object and removes the legacy member.
@@ -624,19 +597,6 @@ public final class LegacyConfigMigrator {
                 copyMember(account, privateData, "userProperties");
                 yield new MigratedLegacyAccount(metadata, privateData);
             }
-            case "authlibInjector" -> {
-                JsonObject metadata = createLegacyAccountMetadata("authlibInjector");
-                JsonObject privateData = new JsonObject();
-                copyMember(account, metadata, "serverBaseURL");
-                addStringMember(metadata, "loginName", JsonUtils.getString(account, "username"));
-                addNormalizedUUIDMember(metadata, "profileID", JsonUtils.getString(account, "uuid"));
-                addStringMember(privateData, "profileName", JsonUtils.getString(account, "displayName"));
-                copyMember(account, privateData, "clientToken");
-                copyMember(account, privateData, "accessToken");
-                copyMember(account, privateData, "userProperties");
-                copyMember(account, privateData, "profileProperties");
-                yield new MigratedLegacyAccount(metadata, privateData);
-            }
             default -> {
                 JsonObject metadata = account.deepCopy();
                 yield new MigratedLegacyAccount(metadata, new JsonObject());
@@ -723,15 +683,6 @@ public final class LegacyConfigMigrator {
                         ? loginName + ":" + formattedProfileID
                         : null;
             }
-            case "authlibInjector" -> {
-                @Nullable String serverBaseURL = JsonUtils.getString(metadata, "serverBaseURL");
-                @Nullable String loginName = JsonUtils.getString(metadata, "loginName");
-                @Nullable String profileID = JsonUtils.getString(metadata, "profileID");
-                @Nullable String formattedProfileID = profileID != null ? formatLegacyUUID(profileID) : null;
-                yield serverBaseURL != null && loginName != null && formattedProfileID != null
-                        ? serverBaseURL + ":" + loginName + ":" + formattedProfileID
-                        : null;
-            }
             default -> null;
         };
     }
@@ -759,15 +710,6 @@ public final class LegacyConfigMigrator {
                 @Nullable String formattedUUID = uuid != null ? formatLegacyUUID(uuid) : null;
                 yield username != null && formattedUUID != null
                         ? username + ":" + formattedUUID
-                        : null;
-            }
-            case "authlibInjector" -> {
-                @Nullable String serverBaseURL = JsonUtils.getString(storage, "serverBaseURL");
-                @Nullable String username = JsonUtils.getString(storage, "username");
-                @Nullable String uuid = JsonUtils.getString(storage, "uuid");
-                @Nullable String formattedUUID = uuid != null ? formatLegacyUUID(uuid) : null;
-                yield serverBaseURL != null && username != null && formattedUUID != null
-                        ? serverBaseURL + ":" + username + ":" + formattedUUID
                         : null;
             }
             default -> null;
@@ -1371,17 +1313,15 @@ public final class LegacyConfigMigrator {
     /// @param gameDirectories the detached game directory store, or `null` when none was migrated
     /// @param gameSettingsPresets the detached preset store, or `null` when none was migrated
     /// @param launcherState the detached launcher state, or `null` when none was migrated
-    /// @param authlibInjectorServers the detached authlib-injector servers, or `null` when none was migrated
     /// @param accountMigration the detached account metadata and private data stores, or `null` when none was migrated
     record DetachedSettings(
             @Nullable GameDirectories gameDirectories,
             @Nullable GameSettingsPresets gameSettingsPresets,
             @Nullable LauncherState launcherState,
-            @Nullable AuthlibInjectorServerList authlibInjectorServers,
             @Nullable AccountMigrationResult accountMigration) {
         /// Returns an empty detached settings migration result.
         static DetachedSettings empty() {
-            return new DetachedSettings(null, null, null, null, null);
+            return new DetachedSettings(null, null, null, null);
         }
     }
 

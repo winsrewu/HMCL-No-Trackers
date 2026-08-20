@@ -18,7 +18,6 @@
 package org.jackhuang.hmcl.ui.account;
 
 import javafx.beans.binding.Bindings;
-import javafx.beans.binding.ObjectBinding;
 import javafx.beans.binding.StringBinding;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
@@ -31,11 +30,7 @@ import org.jackhuang.hmcl.auth.Account;
 import org.jackhuang.hmcl.auth.AuthenticationException;
 import org.jackhuang.hmcl.auth.ClassicAccount;
 import org.jackhuang.hmcl.auth.CredentialExpiredException;
-import org.jackhuang.hmcl.auth.authlibinjector.AuthlibInjectorAccount;
-import org.jackhuang.hmcl.auth.authlibinjector.AuthlibInjectorServer;
 import org.jackhuang.hmcl.auth.offline.OfflineAccount;
-import org.jackhuang.hmcl.auth.yggdrasil.CompleteGameProfile;
-import org.jackhuang.hmcl.auth.yggdrasil.TextureType;
 import org.jackhuang.hmcl.setting.Accounts;
 import org.jackhuang.hmcl.task.Schedulers;
 import org.jackhuang.hmcl.task.Task;
@@ -50,11 +45,8 @@ import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.CancellationException;
 
-import static java.util.Collections.emptySet;
 import static javafx.beans.binding.Bindings.createBooleanBinding;
 import static org.jackhuang.hmcl.util.i18n.I18n.i18n;
 import static org.jackhuang.hmcl.util.logging.Logger.LOG;
@@ -72,14 +64,7 @@ public class AccountListItem extends RadioButton {
 
         String loginTypeName = Accounts.getLocalizedLoginTypeName(Accounts.getAccountFactory(account));
         String portableSuffix = account.isPortable() ? ", " + i18n("account.portable") : "";
-        if (account instanceof AuthlibInjectorAccount) {
-            AuthlibInjectorServer server = ((AuthlibInjectorAccount) account).getServer();
-            subtitle.bind(Bindings.concat(
-                    loginTypeName, ", ", i18n("account.injector.server"), ": ",
-                    Bindings.createStringBinding(server::getName, server), portableSuffix));
-        } else {
-            subtitle.set(loginTypeName + portableSuffix);
-        }
+        subtitle.set(loginTypeName + portableSuffix);
 
         StringBinding profileName = Bindings.createStringBinding(() -> {
             String name = account.getProfileName();
@@ -119,15 +104,7 @@ public class AccountListItem extends RadioButton {
     }
 
     public ObservableBooleanValue canUploadSkin() {
-        if (account instanceof AuthlibInjectorAccount aiAccount) {
-            ObjectBinding<Optional<CompleteGameProfile>> profile = aiAccount.getYggdrasilService().getProfileRepository().binding(aiAccount.getProfileID());
-            return createBooleanBinding(() -> {
-                Set<TextureType> uploadableTextures = profile.get()
-                        .map(AuthlibInjectorAccount::getUploadableTextures)
-                        .orElse(emptySet());
-                return uploadableTextures.contains(TextureType.SKIN);
-            }, profile);
-        } else if (account instanceof OfflineAccount || account.canUploadSkin()) {
+        if (account instanceof OfflineAccount || account.canUploadSkin()) {
             return createBooleanBinding(() -> true);
         } else {
             return createBooleanBinding(() -> false);

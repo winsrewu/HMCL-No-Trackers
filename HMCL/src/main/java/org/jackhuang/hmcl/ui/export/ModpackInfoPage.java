@@ -32,9 +32,7 @@ import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.stage.FileChooser;
 
-import org.jackhuang.hmcl.Metadata;
 import org.jackhuang.hmcl.auth.Account;
-import org.jackhuang.hmcl.auth.authlibinjector.AuthlibInjectorServer;
 import org.jackhuang.hmcl.game.GameInstanceID;
 import org.jackhuang.hmcl.game.HMCLGameRepository;
 import org.jackhuang.hmcl.modpack.ModpackExportInfo;
@@ -56,10 +54,8 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static org.jackhuang.hmcl.setting.SettingsManager.getAuthlibInjectorServers;
 import static org.jackhuang.hmcl.ui.export.ModpackTypeSelectionPage.MODPACK_TYPE;
 import static org.jackhuang.hmcl.ui.export.ModpackTypeSelectionPage.MODPACK_TYPE_MODRINTH;
-import static org.jackhuang.hmcl.ui.export.ModpackTypeSelectionPage.MODPACK_TYPE_SERVER;
 import static org.jackhuang.hmcl.util.DataSizeUnit.MEGABYTES;
 import static org.jackhuang.hmcl.util.i18n.I18n.i18n;
 
@@ -81,7 +77,6 @@ public final class ModpackInfoPage extends Control implements WizardPage {
     private final SimpleBooleanProperty packWithLauncher = new SimpleBooleanProperty();
     private final SimpleStringProperty fileApi = new SimpleStringProperty("");
     private final SimpleIntegerProperty minMemory = new SimpleIntegerProperty(0);
-    private final SimpleStringProperty authlibInjectorServer = new SimpleStringProperty();
     private final SimpleStringProperty launchArguments = new SimpleStringProperty("");
     private final SimpleStringProperty javaArguments = new SimpleStringProperty("");
     private final SimpleStringProperty mcbbsThreadId = new SimpleStringProperty("");
@@ -135,7 +130,6 @@ public final class ModpackInfoPage extends Control implements WizardPage {
         exportInfo.setMinMemory(minMemory.get());
         exportInfo.setLaunchArguments(launchArguments.get());
         exportInfo.setJavaArguments(javaArguments.get());
-        exportInfo.setAuthlibInjectorServer(authlibInjectorServer.get());
         exportInfo.setNoCreateRemoteFiles(noCreateRemoteFiles.get());
         exportInfo.setSkipCurseForgeRemoteFiles(skipCurseForgeRemoteFiles.get());
 
@@ -190,11 +184,6 @@ public final class ModpackInfoPage extends Control implements WizardPage {
                 borderPane.setStyle("-fx-padding: 16;");
                 scroll.setContent(borderPane);
 
-                if (skinnable.controller.getSettings().get(MODPACK_TYPE) == MODPACK_TYPE_SERVER) {
-                    Hyperlink hyperlink = new Hyperlink(i18n("modpack.wizard.step.initialization.server"));
-                    hyperlink.setOnAction(e -> FXUtils.openLink(Metadata.DOCS_URL + "/modpack/serverpack.html"));
-                    borderPane.setTop(hyperlink);
-                }
                 if (skinnable.controller.getSettings().get(MODPACK_TYPE) == MODPACK_TYPE_MODRINTH) {
                     HintPane pane = new HintPane(MessageDialogPane.MessageType.INFO);
                     pane.setText(i18n("modpack.wizard.step.initialization.modrinth.info"));
@@ -311,21 +300,6 @@ public final class ModpackInfoPage extends Control implements WizardPage {
                         area.setMinHeight(400);
                         pane.getChildren().setAll(new Label(i18n("modpack.desc")), area);
                         list.getContent().add(pane);
-                    }
-
-                    if (skinnable.options.isRequireAuthlibInjectorServer()) {
-                        var serversSelectButton = new LineSelectButton<AuthlibInjectorServer>();
-                        serversSelectButton.setTitle(i18n("account.injector.server"));
-                        serversSelectButton.setNullSafeConverter(AuthlibInjectorServer::getName);
-                        serversSelectButton.setDescriptionConverter(AuthlibInjectorServer::getUrl);
-                        serversSelectButton.itemsProperty().set(getAuthlibInjectorServers());
-
-                        skinnable.authlibInjectorServer.bind(Bindings.createStringBinding(() -> {
-                            AuthlibInjectorServer selected = serversSelectButton.getValue();
-                            return selected != null ? selected.getUrl() : null;
-                        }, serversSelectButton.valueProperty()));
-
-                        list.getContent().add(serversSelectButton);
                     }
 
                     if (skinnable.options.isRequireForceUpdate()) {

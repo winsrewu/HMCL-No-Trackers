@@ -21,7 +21,6 @@ import com.jfoenix.controls.JFXButton;
 import javafx.stage.Stage;
 import org.jackhuang.hmcl.Launcher;
 import org.jackhuang.hmcl.auth.*;
-import org.jackhuang.hmcl.auth.authlibinjector.AuthlibInjectorDownloadException;
 import org.jackhuang.hmcl.auth.offline.OfflineAccount;
 import org.jackhuang.hmcl.download.DefaultDependencyManager;
 import org.jackhuang.hmcl.download.DownloadProvider;
@@ -375,8 +374,6 @@ public final class LauncherHelper {
                                     }
                                 } else if (ex instanceof GameAssetIndexDownloadTask.GameAssetIndexMalformedException) {
                                     message = i18n("assets.index.malformed");
-                                } else if (ex instanceof AuthlibInjectorDownloadException) {
-                                    message = i18n("account.failed.injector_download_failure");
                                 } else if (ex instanceof CharacterDeletedException) {
                                     message = i18n("account.failed.character_deleted");
                                 } else if (ex instanceof ResponseCodeException) {
@@ -976,7 +973,7 @@ public final class LauncherHelper {
             if (forbiddenAccessToken != null)
                 log = log.replace(forbiddenAccessToken, "<access token>");
 
-            Log4jLevel level = isErrorStream && !log.startsWith("[authlib-injector]") ? Log4jLevel.ERROR : null;
+            Log4jLevel level = isErrorStream ? Log4jLevel.ERROR : null;
             if (showLogs) {
                 if (level == null)
                     level = Lang.requireNonNullElse(Log4jLevel.guessLevel(log), Log4jLevel.INFO);

@@ -465,14 +465,10 @@ public class GameCrashWindow extends Stage {
                 JFXButton logButton = FXUtils.newRaisedButton(i18n("logwindow.title"));
                 logButton.setOnAction(e -> showLogWindow());
 
-                JFXButton helpButton = FXUtils.newRaisedButton(i18n("help"));
-                helpButton.setOnAction(e -> FXUtils.openLink(Metadata.CONTACT_URL));
-                FXUtils.installFastTooltip(helpButton, i18n("logwindow.help"));
-
                 toolBar.setPadding(new Insets(8));
                 toolBar.setSpacing(8);
                 toolBar.getStyleClass().add("jfx-tool-bar");
-                toolBar.getChildren().setAll(exportButtonPane, logButton, helpButton);
+                toolBar.getChildren().setAll(exportButtonPane, logButton);
             }
 
             getChildren().setAll(titlePane, infoPane, moddedPane, gameDirPane, toolBar);

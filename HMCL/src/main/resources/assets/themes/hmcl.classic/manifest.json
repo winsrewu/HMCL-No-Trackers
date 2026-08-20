@@ -1,5 +1,5 @@
 {
-  "$schema": "https://schemas.glavo.site/hmcl/theme-pack/1.0.0",
+  "$schema": "hmcl-notrackers/theme-pack/1.0.0",
   "id": "hmcl.classic",
   "version": "1.0.0",
   "name": {

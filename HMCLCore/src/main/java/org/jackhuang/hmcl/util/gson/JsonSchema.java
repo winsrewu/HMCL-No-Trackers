@@ -37,7 +37,7 @@ import java.util.Objects;
 /// The JSON representation is always a string. HMCL-owned schemas use the following
 /// fixed URL form, but other strings can still be represented as unparseable schemas:
 ///
-/// `https://schemas.glavo.site/hmcl/<id>/<version>`
+/// `hmcl-notrackers/<id>/<version>`
 ///
 /// Canonical URLs written by this class use `major.minor.patch` versions. Parsing
 /// also accepts `major.minor` versions and treats the missing patch number as `0`.
@@ -62,7 +62,7 @@ public record JsonSchema(String value, @Nullable Parsed parsed) {
     public static final String PROPERTY_SCHEMA = "$schema";
 
     /// The HMCL schema URL prefix.
-    private static final String URL_PREFIX = "https://schemas.glavo.site/hmcl/";
+    private static final String URL_PREFIX = "hmcl-notrackers/";
 
     /// @param value the raw JSON schema string
     /// @param parsed the parsed HMCL schema identifier, or `null` when the string is not parseable

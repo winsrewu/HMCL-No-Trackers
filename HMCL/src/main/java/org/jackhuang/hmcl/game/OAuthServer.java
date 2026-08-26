@@ -17,167 +17,73 @@
  */
 package org.jackhuang.hmcl.game;
 
-import fi.iki.elonen.NanoHTTPD;
 import org.jackhuang.hmcl.auth.AuthenticationException;
 import org.jackhuang.hmcl.auth.OAuth;
 import org.jackhuang.hmcl.event.Event;
 import org.jackhuang.hmcl.event.EventManager;
-import org.jackhuang.hmcl.theme.Themes;
+import org.jackhuang.hmcl.util.Pair;
 import org.jackhuang.hmcl.util.StringUtils;
-import org.jackhuang.hmcl.util.io.IOUtils;
-import org.jackhuang.hmcl.util.io.JarUtils;
 import org.jackhuang.hmcl.util.io.NetworkUtils;
 
 import java.io.IOException;
-import java.security.SecureRandom;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Map;
+import java.net.URI;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
-import static org.jackhuang.hmcl.util.Lang.mapOf;
-import static org.jackhuang.hmcl.util.Lang.thread;
-import static org.jackhuang.hmcl.util.i18n.I18n.i18n;
-import static org.jackhuang.hmcl.util.logging.Logger.LOG;
+/**
+ * @author huangyuhui
+ */
+public final class OAuthServer {
+    private OAuthServer() {
+    }
 
-public final class OAuthServer extends NanoHTTPD implements OAuth.Session {
-    private final int port;
-    private final CompletableFuture<String> future = new CompletableFuture<>();
-    private final String codeVerifier;
-    private final String state;
+    /// The Minecraft Launcher client id, which works without an officially injected client id.
+    public static final String MICROSOFT_CLIENT_ID = "00000000402b5328";
 
-    public static String lastlyOpenedURL;
+    /// An OAuth session that waits for the authorization URL pasted by the user.
+    ///
+    /// The Minecraft Launcher client id only accepts `https://login.live.com/oauth20_desktop.srf`
+    /// as the redirect URI, so the authorization code never comes back to a local server.
+    /// Instead, the user copies the final URL from the browser address bar and pastes it into HMCL.
+    public static final class ManualCodeSession implements OAuth.Session {
+        private final CompletableFuture<String> future = new CompletableFuture<>();
 
-    private String idToken;
-
-    private OAuthServer(int port) {
-        super(port);
-
-        this.port = port;
-
-        var encoder = Base64.getUrlEncoder().withoutPadding();
-        var random = new SecureRandom();
-
-        {
-            // https://datatracker.ietf.org/doc/html/rfc6749#section-4.1.1
-            // https://datatracker.ietf.org/doc/html/rfc6749#section-10.12
-            byte[] bytes = new byte[32];
-            random.nextBytes(bytes);
-            this.state = encoder.encodeToString(bytes);
+        @Override
+        public String getState() {
+            return "";
         }
 
-        {
-            // https://datatracker.ietf.org/doc/html/rfc7636#section-4.1
-            byte[] bytes = new byte[64];
-            random.nextBytes(bytes);
-            this.codeVerifier = encoder.encodeToString(bytes);
-        }
-    }
-
-    @Override
-    public String getCodeVerifier() {
-        return codeVerifier;
-    }
-
-    @Override
-    public String getState() {
-        return state;
-    }
-
-    @Override
-    public String getRedirectURI() {
-        return String.format("http://localhost:%d/auth-response", port);
-    }
-
-    @Override
-    public String waitFor() throws InterruptedException, ExecutionException {
-        return future.get();
-    }
-
-    @Override
-    public String getIdToken() {
-        return idToken;
-    }
-
-    @Override
-    public Response serve(IHTTPSession session) {
-        if (!"/auth-response".equals(session.getUri())) {
-            return newFixedLengthResponse(Response.Status.NOT_FOUND, MIME_HTML, "");
+        @Override
+        public String getCodeVerifier() {
+            return "";
         }
 
-        if (session.getMethod() == Method.POST) {
-            Map<String, String> files = new HashMap<>();
-            try {
-                session.parseBody(files);
-            } catch (IOException e) {
-                LOG.warning("Failed to read post data", e);
-                return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, MIME_HTML, "");
-            } catch (ResponseException re) {
-                return newFixedLengthResponse(re.getStatus(), MIME_PLAINTEXT, re.getMessage());
+        @Override
+        public String getRedirectURI() {
+            return OAuth.REDIRECT_URI;
+        }
+
+        @Override
+        public String waitFor() throws InterruptedException, ExecutionException {
+            return future.get();
+        }
+
+        @Override
+        public void close() {
+            if (!future.isDone()) {
+                future.completeExceptionally(new AuthenticationException("OAuth authorization is cancelled"));
             }
-        } else if (session.getMethod() == Method.GET) {
-            // do nothing
-        } else {
-            return newFixedLengthResponse(Response.Status.NOT_FOUND, MIME_HTML, "");
-        }
-        String parameters = session.getQueryParameterString();
-
-        Map<String, String> query = mapOf(NetworkUtils.parseQuery(parameters));
-
-        String code = query.get("code");
-        if (code != null) {
-            if (this.state.equals(query.get("state"))) {
-                idToken = query.get("id_token");
-                future.complete(code);
-            } else if (query.containsKey("state")) {
-                LOG.warning("Failed to authenticate: invalid state in parameters");
-                future.completeExceptionally(new AuthenticationException("Failed to authenticate: invalid state"));
-            } else {
-                LOG.warning("Failed to authenticate: missing state in parameters");
-                future.completeExceptionally(new AuthenticationException("Failed to authenticate: missing state"));
-            }
-        } else {
-            LOG.warning("Failed to authenticate: missing authorization code in parameters");
-            future.completeExceptionally(new AuthenticationException("Failed to authenticate: missing authorization code"));
         }
 
-        String html;
-        try {
-            html = IOUtils.readFullyAsString(OAuthServer.class.getResourceAsStream("/assets/microsoft_auth.html"))
-                    .replace("%style%", Themes.getTheme().toColorScheme().toStyleSheet().replace("-monet", "--monet"))
-                    .replace("%lang%", Locale.getDefault().toLanguageTag())
-                    .replace("%success%", i18n("message.success"))
-                    .replace("%ok%", i18n("button.ok"))
-                    .replace("%close_page%", i18n("account.methods.microsoft.close_page"));
-        } catch (IOException e) {
-            LOG.error("Failed to load html", e);
-            return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, MIME_HTML, "");
+        void complete(String code) {
+            future.complete(code);
         }
-        thread(() -> {
-            try {
-                Thread.sleep(1000);
-                stop();
-            } catch (InterruptedException e) {
-                LOG.error("Failed to sleep for 1 second");
-            }
-        });
-        return newFixedLengthResponse(Response.Status.OK, "text/html; charset=UTF-8", html);
-    }
-
-    @Override
-    public void close() {
-        if (!future.isDone())
-            future.completeExceptionally(new AuthenticationException("OAuth server is closing"));
-        stop();
     }
 
     public static class Factory implements OAuth.Callback {
-        public final EventManager<GrantDeviceCodeEvent> onGrantDeviceCode = new EventManager<>();
-        public final EventManager<LoginCompletedDeviceCodeEvent> onLoginCompletedDeviceCode = new EventManager<>();
         public final EventManager<OpenBrowserEvent> onOpenBrowserAuthorizationCode = new EventManager<>();
-        public final EventManager<OpenBrowserEvent> onOpenBrowserDevice = new EventManager<>();
+
+        private volatile ManualCodeSession pendingSession;
 
         @Override
         public OAuth.Session startServer() throws IOException, AuthenticationException {
@@ -185,68 +91,68 @@ public final class OAuthServer extends NanoHTTPD implements OAuth.Session {
                 throw new MicrosoftAuthenticationNotSupportedException();
             }
 
-            IOException exception = null;
-            for (int port : new int[]{29111, 29112, 29113, 29114, 29115}) {
-                try {
-                    OAuthServer server = new OAuthServer(port);
-                    server.start(NanoHTTPD.SOCKET_READ_TIMEOUT, true);
-                    return server;
-                } catch (IOException e) {
-                    exception = e;
-                }
-            }
-            throw exception;
+            ManualCodeSession session = new ManualCodeSession();
+            pendingSession = session;
+            return session;
         }
 
         @Override
         public void grantDeviceCode(String userCode, String verificationURI) {
-            onGrantDeviceCode.fireEvent(new GrantDeviceCodeEvent(this, userCode, verificationURI));
+            throw new UnsupportedOperationException("Device code flow is not supported by the Minecraft Launcher client id");
         }
 
         @Override
         public void loginCompletedDeviceCode() {
-            onLoginCompletedDeviceCode.fireEvent(new LoginCompletedDeviceCodeEvent(this));
+            throw new UnsupportedOperationException("Device code flow is not supported");
         }
 
         @Override
         public void openBrowser(OAuth.GrantFlow grantFlow, String url) throws IOException {
-            lastlyOpenedURL = url;
-
             switch (grantFlow) {
                 case AUTHORIZATION_CODE -> onOpenBrowserAuthorizationCode.fireEvent(new OpenBrowserEvent(this, url));
-                case DEVICE -> onOpenBrowserDevice.fireEvent(new OpenBrowserEvent(this, url));
+                case DEVICE -> throw new UnsupportedOperationException("Device code flow is not supported");
             }
         }
 
         @Override
         public String getClientId() {
-            return System.getProperty("hmcl.microsoft.auth.id",
-                    JarUtils.getAttribute("hmcl.microsoft.auth.id", ""));
-        }
-    }
-
-    public static class GrantDeviceCodeEvent extends Event {
-        private final String userCode;
-        private final String verificationUri;
-
-        public GrantDeviceCodeEvent(Object source, String userCode, String verificationUri) {
-            super(source);
-            this.userCode = userCode;
-            this.verificationUri = verificationUri;
+            return MICROSOFT_CLIENT_ID;
         }
 
-        public String getUserCode() {
-            return userCode;
+        /// Submits the authorization URL pasted by the user and extracts the authorization code.
+        ///
+        /// @param url the full URL copied from the browser address bar, e.g. `https://login.live.com/oauth20_desktop.srf?code=...`
+        /// @throws IllegalArgumentException if the URL does not contain an authorization code.
+        public void submitManualCode(String url) throws IllegalArgumentException {
+            ManualCodeSession session = pendingSession;
+            if (session == null) {
+                throw new IllegalStateException("No pending OAuth session");
+            }
+
+            String code = extractCode(url);
+            if (code == null || code.isEmpty()) {
+                throw new IllegalArgumentException("No authorization code found in URL: " + url);
+            }
+
+            session.complete(code);
         }
 
-        public String getVerificationUri() {
-            return verificationUri;
-        }
-    }
+        private static String extractCode(String url) {
+            try {
+                String query = URI.create(url).getRawQuery();
+                if (query == null) {
+                    return null;
+                }
 
-    public static class LoginCompletedDeviceCodeEvent extends Event {
-        public LoginCompletedDeviceCodeEvent(Object source) {
-            super(source);
+                for (Pair<String, String> entry : NetworkUtils.parseQuery(query)) {
+                    if ("code".equals(entry.getKey())) {
+                        return entry.getValue();
+                    }
+                }
+                return null;
+            } catch (IllegalArgumentException e) {
+                return null;
+            }
         }
     }
 

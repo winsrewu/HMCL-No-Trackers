@@ -24,9 +24,6 @@ import org.jackhuang.hmcl.util.io.HttpRequest;
 import org.jackhuang.hmcl.util.io.NetworkUtils;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.util.Base64;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -36,6 +33,10 @@ import static org.jackhuang.hmcl.util.Pair.pair;
 import static org.jackhuang.hmcl.util.logging.Logger.LOG;
 
 public class OAuth {
+    /// The redirect URI used by the Microsoft desktop OAuth flow.
+    /// The Minecraft Launcher client id only accepts this redirect URI.
+    public static final String REDIRECT_URI = "https://login.live.com/oauth20_desktop.srf";
+
     public static final OAuth MICROSOFT = new OAuth(
             "https://login.live.com/oauth20_authorize.srf",
             "https://login.live.com/oauth20_token.srf",
@@ -81,19 +82,12 @@ public class OAuth {
 
     private Result authenticateAuthorizationCode(Options options) throws IOException, InterruptedException, JsonParseException, ExecutionException, AuthenticationException {
         try (Session session = options.callback.startServer()) {
-            String codeVerifier = session.getCodeVerifier();
-            String state = session.getState();
-            String codeChallenge = generateCodeChallenge(codeVerifier);
-
             options.callback.openBrowser(GrantFlow.AUTHORIZATION_CODE, NetworkUtils.withQuery(authorizationURL,
                     mapOf(pair("client_id", options.callback.getClientId()),
                             pair("response_type", "code"),
-                            pair("redirect_uri", session.getRedirectURI()),
+                            pair("redirect_uri", REDIRECT_URI),
                             pair("scope", options.scope),
-                            pair("prompt", "select_account"),
-                            pair("code_challenge", codeChallenge),
-                            pair("state", state),
-                            pair("code_challenge_method", "S256")
+                            pair("prompt", "select_account")
                     )));
             String code = session.waitFor();
 
@@ -102,8 +96,7 @@ public class OAuth {
                     .form(pair("client_id", options.callback.getClientId()),
                             pair("code", code),
                             pair("grant_type", "authorization_code"),
-                            pair("code_verifier", codeVerifier),
-                            pair("redirect_uri", session.getRedirectURI()),
+                            pair("redirect_uri", REDIRECT_URI),
                             pair("scope", options.scope))
                     .ignoreHttpCode()
                     .retry(5)
@@ -187,20 +180,6 @@ public class OAuth {
             throw new ServerDisconnectException(e);
         } catch (JsonParseException e) {
             throw new ServerResponseMalformedException(e);
-        }
-    }
-
-    private static String generateCodeChallenge(String codeVerifier) {
-        // https://datatracker.ietf.org/doc/html/rfc7636#section-4.2
-        try {
-            byte[] bytes = codeVerifier.getBytes(StandardCharsets.US_ASCII);
-            MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
-            messageDigest.update(bytes, 0, bytes.length);
-            byte[] digest = messageDigest.digest();
-            return Base64.getUrlEncoder().withoutPadding().encodeToString(digest);
-        } catch (Exception e) {
-            LOG.warning("Failed to generate code challenge", e);
-            throw new RuntimeException(e);
         }
     }
 

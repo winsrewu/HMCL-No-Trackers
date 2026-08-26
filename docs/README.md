@@ -32,6 +32,8 @@ The following third-party services and features have been removed:
 - **HMCL-hosted metadata** — `hmcl.glavo.site` is removed, so the Forge, Cleanroom, and legacy FML-libs version lists are now empty. The JSON schema namespace is now the local identifier `hmcl-notrackers/` instead of `schemas.glavo.site`.
 - **Forge** - lagacy version listing is unavailable.
 - **OptiFine** — version listing is unavailable (it relied solely on BMCLAPI).
+- **Microsoft sign-in** — uses the fixed Minecraft Launcher client id (`00000000402b5328`) instead of an officially injected one. After logging in through the browser, copy the full address (starting with `https://login.live.com/oauth20_desktop.srf`) from the address bar and paste it back into the launcher. QR-code (device code) sign-in is not supported by this client id.
+- **Translations** — only the English strings (`I18N.properties`) are updated for the new features. Translations in other languages are kept for code stability but are not maintained for the latest changes.
 
 ## Download
 Build yourself.

@@ -29,6 +29,7 @@ import javafx.geometry.Pos;
 import javafx.scene.Cursor;
 import javafx.scene.Group;
 import javafx.scene.control.Label;
+import javafx.scene.control.TextField;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
@@ -71,7 +72,6 @@ public class MicrosoftAccountLoginPane extends JFXDialogLayout implements Dialog
     private final ObjectProperty<Step> step = new SimpleObjectProperty<>();
 
     private TaskExecutor browserTaskExecutor;
-    private TaskExecutor deviceTaskExecutor;
 
     private final JFXButton btnLogin;
     private final SpinnerPane loginButtonSpinner;
@@ -120,16 +120,6 @@ public class MicrosoftAccountLoginPane extends JFXDialogLayout implements Dialog
                 step.set(new Step.WaitForOpenBrowser(event.getUrl()));
         }));
 
-        holder.registerWeak(Accounts.OAUTH_CALLBACK.onGrantDeviceCode, event -> Platform.runLater(() -> {
-            if (step.get() instanceof Step.StartDeviceCodeLogin)
-                step.set(new Step.WaitForScanQrCode(event.getUserCode(), event.getVerificationUri()));
-        }));
-
-        holder.registerWeak(Accounts.OAUTH_CALLBACK.onLoginCompletedDeviceCode, event -> Platform.runLater(() -> {
-            if (step.get() instanceof Step.WaitForScanQrCode)
-                step.set(new Step.DeviceLoginCompleted());
-        }));
-
         this.step.set(Accounts.OAUTH_CALLBACK.getClientId().isEmpty()
                 ? new Step.Init()
                 : new Step.StartAuthorizationCodeLogin());
@@ -172,19 +162,10 @@ public class MicrosoftAccountLoginPane extends JFXDialogLayout implements Dialog
             browserTaskExecutor = Task.supplyAsync(() -> Accounts.FACTORY_MICROSOFT.create(null, null, null, null, OAuth.GrantFlow.AUTHORIZATION_CODE))
                     .whenComplete(Schedulers.javafx(), this::onLoginCompleted)
                     .executor(true);
-        } else if (currentStep instanceof Step.StartDeviceCodeLogin) {
-            loginButtonSpinner.setLoading(true);
-            cancelAllTasks();
-
-            rootContainer.getChildren().add(new JFXSpinner());
-
-            deviceTaskExecutor = Task.supplyAsync(() -> Accounts.FACTORY_MICROSOFT.create(null, null, null, null, OAuth.GrantFlow.DEVICE))
-                    .whenComplete(Schedulers.javafx(), this::onLoginCompleted)
-                    .executor(true);
         } else if (currentStep instanceof Step.WaitForOpenBrowser wait) {
             btnLogin.setOnAction(e -> {
                 FXUtils.openLink(wait.url());
-                loginButtonSpinner.setLoading(true);
+                loginButtonSpinner.setLoading(false);
             });
             loginButtonSpinner.setLoading(false);
 
@@ -193,46 +174,34 @@ public class MicrosoftAccountLoginPane extends JFXDialogLayout implements Dialog
                     i18n("account.methods.microsoft.methods.browser.hint", StringUtils.escapeXmlAttribute(wait.url()), wait.url()),
                     FXUtils::copyText
             );
-
             rootContainer.getChildren().add(hintPane);
-        } else if (currentStep instanceof Step.WaitForScanQrCode wait) {
-            loginButtonSpinner.setLoading(true);
 
-            String scanUri = "https://www.microsoft.com/link".equals(wait.verificationUri())
-                    ? "https://www.microsoft.com/link?otc=" + wait.userCode()
-                    : wait.verificationUri();
+            HintPane pasteHint = new HintPane(MessageDialogPane.MessageType.INFO);
+            pasteHint.setSegment(i18n("account.methods.microsoft.methods.browser.paste_hint"));
+            rootContainer.getChildren().add(pasteHint);
 
-            var deviceHint = new HintPane(MessageDialogPane.MessageType.INFO);
-            deviceHint.setSegment(i18n("account.methods.microsoft.methods.device.hint",
-                    StringUtils.escapeXmlAttribute(scanUri),
-                    wait.verificationUri(),
-                    wait.userCode()
-            ));
+            TextField urlField = new TextField();
+            urlField.setPromptText(i18n("account.methods.microsoft.methods.browser.paste_placeholder"));
+            rootContainer.getChildren().add(urlField);
 
-            var qrCode = new SVGPath();
-            qrCode.fillProperty().bind(Themes.colorSchemeProperty().getPrimary());
-            qrCode.setContent(QrCodeUtils.toSVGPath(QrCode.encodeText(scanUri, QrCode.Ecc.MEDIUM)));
-            qrCode.setScaleX(3);
-            qrCode.setScaleY(3);
+            JFXButton btnSubmit = new JFXButton(i18n("account.methods.microsoft.methods.browser.submit"));
+            btnSubmit.getStyleClass().add("dialog-accept");
+            btnSubmit.setOnAction(e -> {
+                String url = urlField.getText();
+                if (StringUtils.isBlank(url)) {
+                    return;
+                }
 
-            var lblCode = new Label(wait.userCode());
-            lblCode.getStyleClass().add("code-label");
-            lblCode.setStyle("-fx-font-family: \"" + Lang.requireNonNullElse(settings().logFontFamilyProperty().get(), FXUtils.DEFAULT_MONOSPACE_FONT) + "\";");
-
-            var codeBox = new StackPane(lblCode);
-            codeBox.getStyleClass().add("code-box");
-            codeBox.setCursor(Cursor.HAND);
-            FXUtils.onClicked(codeBox, () -> FXUtils.copyText(wait.userCode()));
-            codeBox.setMaxWidth(USE_PREF_SIZE);
-
-            rootContainer.getChildren().addAll(deviceHint, new Group(qrCode), codeBox);
-        } else if (currentStep instanceof Step.DeviceLoginCompleted) {
-            loginButtonSpinner.setLoading(true);
-
-            var hintPane = new HintPane(MessageDialogPane.MessageType.INFO);
-            hintPane.setSegment(i18n("account.methods.microsoft.methods.device.hint.completed"));
-
-            rootContainer.getChildren().addAll(hintPane);
+                try {
+                    Accounts.OAUTH_CALLBACK.submitManualCode(url.trim());
+                    loginButtonSpinner.setLoading(true);
+                } catch (IllegalArgumentException ex) {
+                    var errHint = new HintPane(MessageDialogPane.MessageType.ERROR);
+                    errHint.setSegment(i18n("account.methods.microsoft.methods.browser.paste_invalid"));
+                    rootContainer.getChildren().add(errHint);
+                }
+            });
+            rootContainer.getChildren().add(btnSubmit);
         } else if (currentStep instanceof Step.LoginFailed failed) {
             btnLogin.setOnAction(e -> this.step.set(new Step.StartAuthorizationCodeLogin()));
             loginButtonSpinner.setLoading(false);
@@ -247,16 +216,6 @@ public class MicrosoftAccountLoginPane extends JFXDialogLayout implements Dialog
         linkBox.setAlignment(Pos.CENTER_LEFT);
         linkBox.setPrefWrapLength(500);
 
-        if (currentStep instanceof Step.Init || currentStep instanceof Step.StartAuthorizationCodeLogin || currentStep instanceof Step.WaitForOpenBrowser) {
-            JFXHyperlink useQrCode = new JFXHyperlink(i18n("account.methods.microsoft.methods.device"));
-            useQrCode.setOnAction(e -> this.step.set(new Step.StartDeviceCodeLogin()));
-            linkBox.getChildren().add(useQrCode);
-        } else if (currentStep instanceof Step.StartDeviceCodeLogin || currentStep instanceof Step.WaitForScanQrCode) {
-            JFXHyperlink userBrowser = new JFXHyperlink(i18n("account.methods.microsoft.methods.browser"));
-            userBrowser.setOnAction(e -> this.step.set(new Step.StartAuthorizationCodeLogin()));
-            linkBox.getChildren().add(userBrowser);
-        }
-
         JFXHyperlink profileLink = new JFXHyperlink(i18n("account.methods.microsoft.profile"));
         profileLink.setExternalLink("https://account.live.com/editprof.aspx");
         JFXHyperlink purchaseLink = new JFXHyperlink(i18n("account.methods.microsoft.purchase"));
@@ -270,7 +229,6 @@ public class MicrosoftAccountLoginPane extends JFXDialogLayout implements Dialog
 
     private void cancelAllTasks() {
         if (browserTaskExecutor != null) browserTaskExecutor.cancel();
-        if (deviceTaskExecutor != null) deviceTaskExecutor.cancel();
     }
 
     private void onCancel() {
@@ -331,17 +289,6 @@ public class MicrosoftAccountLoginPane extends JFXDialogLayout implements Dialog
         }
 
         record WaitForOpenBrowser(String url) implements Step {
-
-        }
-
-        final class StartDeviceCodeLogin implements Step {
-        }
-
-        record WaitForScanQrCode(String userCode, String verificationUri) implements Step {
-
-        }
-
-        record DeviceLoginCompleted() implements Step {
 
         }
 

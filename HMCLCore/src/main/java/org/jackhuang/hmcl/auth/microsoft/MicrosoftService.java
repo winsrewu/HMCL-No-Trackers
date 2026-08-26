@@ -117,19 +117,30 @@ public class MicrosoftService {
 
     private MicrosoftSession authenticateViaLiveAccessToken(String liveAccessToken, String liveRefreshToken) throws IOException, JsonParseException, AuthenticationException {
         String uhs;
-        XBoxLiveAuthenticationResponse xboxResponse, minecraftXstsResponse;
+        XBoxLiveAuthenticationResponse xboxResponse = null, minecraftXstsResponse;
         try {
-            // Authenticate with XBox Live
-            xboxResponse = HttpRequest
-                    .POST("https://user.auth.xboxlive.com/user/authenticate")
-                    .json(mapOf(
-                            pair("Properties",
-                                    mapOf(pair("AuthMethod", "RPS"), pair("SiteName", "user.auth.xboxlive.com"),
-                                            pair("RpsTicket", "d=" + liveAccessToken))),
-                            pair("RelyingParty", "http://auth.xboxlive.com"), pair("TokenType", "JWT")))
-                    .retry(5)
-                    .accept("application/json")
-                    .getJson(XBoxLiveAuthenticationResponse.class);
+            // Authenticate with XBox Live, trying both RPS ticket formats
+            IOException lastException = null;
+            for (String rpsTicket : new String[]{"d=" + liveAccessToken, liveAccessToken}) {
+                try {
+                    xboxResponse = HttpRequest
+                            .POST("https://user.auth.xboxlive.com/user/authenticate")
+                            .json(mapOf(
+                                    pair("Properties",
+                                            mapOf(pair("AuthMethod", "RPS"), pair("SiteName", "user.auth.xboxlive.com"),
+                                                    pair("RpsTicket", rpsTicket))),
+                                    pair("RelyingParty", "http://auth.xboxlive.com"), pair("TokenType", "JWT")))
+                            .retry(5)
+                            .accept("application/json")
+                            .getJson(XBoxLiveAuthenticationResponse.class);
+                    break;
+                } catch (IOException e) {
+                    lastException = e;
+                }
+            }
+            if (xboxResponse == null) {
+                throw lastException != null ? lastException : new IOException("Xbox Live authentication failed");
+            }
 
             uhs = getUhs(xboxResponse, null);
 

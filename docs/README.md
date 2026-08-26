@@ -15,6 +15,7 @@
 
 ## Purpose of the Fork
 To remove any unnecessory third-party services, while keep up to date with the original main branch.
+Due to the rapid development of HMCL, the sync may only be applied once a stable release.
 
 ## Warning
 

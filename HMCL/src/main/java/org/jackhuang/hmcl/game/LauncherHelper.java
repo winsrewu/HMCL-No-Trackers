@@ -28,6 +28,7 @@ import org.jackhuang.hmcl.download.LibraryAnalyzer;
 import org.jackhuang.hmcl.download.MaintainTask;
 import org.jackhuang.hmcl.download.game.*;
 import org.jackhuang.hmcl.java.JavaManager;
+import org.jackhuang.hmcl.java.JavaSecurityCheck;
 import org.jackhuang.hmcl.java.JavaRuntime;
 import org.jackhuang.hmcl.launch.*;
 import org.jackhuang.hmcl.modpack.ModpackCompletionException;
@@ -134,6 +135,10 @@ public final class LauncherHelper {
         FXUtils.checkFxUserThread();
 
         LOG.info("Launching game version: " + selectedInstanceId);
+
+        // Java4Shell (CVE-2026-114938) 门禁：任一已知 Java 不安全或无法识别就中止本次启动。
+        if (!JavaSecurityCheck.checkBeforeLaunch(setting))
+            return;
 
         Controllers.dialog(launchingStepsPane);
         launch0();

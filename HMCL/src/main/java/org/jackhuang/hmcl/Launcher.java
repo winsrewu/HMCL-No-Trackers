@@ -35,6 +35,7 @@ import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 import org.jackhuang.hmcl.game.HMCLCacheRepository;
+import org.jackhuang.hmcl.java.JavaSecurityCheck;
 import org.jackhuang.hmcl.setting.*;
 import org.jackhuang.hmcl.task.AsyncTaskExecutor;
 import org.jackhuang.hmcl.task.Schedulers;
@@ -104,6 +105,12 @@ public final class Launcher extends Application {
 
         try {
             initializeSettingsRuntime();
+
+            // Java4Shell (CVE-2026-114938) 门禁：HMCL 自身所在的 JVM 不安全就直接退出。
+            if (!JavaSecurityCheck.checkLauncherJvm()) {
+                Platform.exit();
+                return;
+            }
 
             // https://lapcatsoftware.com/articles/app-translocation.html
             if (OperatingSystem.CURRENT_OS == OperatingSystem.MACOS

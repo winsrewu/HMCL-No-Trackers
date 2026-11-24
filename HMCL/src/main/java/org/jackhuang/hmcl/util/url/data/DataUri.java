@@ -17,13 +17,13 @@
  */
 package org.jackhuang.hmcl.util.url.data;
 
+import org.jackhuang.hmcl.util.Base64Utils;
 import org.jackhuang.hmcl.util.io.NetworkUtils;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.Charset;
-import java.util.Base64;
 
 /**
  * @author Glavo
@@ -87,7 +87,7 @@ public final class DataUri {
     public byte[] readBytes() throws IOException {
         if (base64) {
             try {
-                return Base64.getDecoder().decode(rawData);
+                return Base64Utils.decode(rawData);
             } catch (IllegalArgumentException e) {
                 throw new IOException(e);
             }
@@ -99,7 +99,7 @@ public final class DataUri {
     public String readString() throws IOException {
         if (base64) {
             try {
-                return new String(Base64.getDecoder().decode(rawData), charset);
+                return new String(Base64Utils.decode(rawData), charset);
             } catch (IllegalArgumentException e) {
                 throw new IOException(e);
             }

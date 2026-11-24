@@ -71,87 +71,87 @@ public final class SettingsPage extends ScrollPane {
         {
             ComponentList languagePaneList = new ComponentList();
 
-                {
-                    var chooseLanguagePane = new LineSelectButton<SupportedLocale>();
-                    chooseLanguagePane.setTitle(i18n("settings.launcher.language"));
-                    chooseLanguagePane.setSubtitle(i18n("settings.take_effect_after_restart"));
+            {
+                var chooseLanguagePane = new LineSelectButton<SupportedLocale>();
+                chooseLanguagePane.setTitle(i18n("settings.launcher.language"));
+                chooseLanguagePane.setSubtitle(i18n("settings.take_effect_after_restart"));
 
-                    SupportedLocale currentLocale = I18n.getLocale();
-                    chooseLanguagePane.setNullSafeConverter(locale -> {
-                        if (locale.isDefault())
-                            return locale.getDisplayName(currentLocale);
-                        else if (locale.isSameLanguage(currentLocale))
-                            return locale.getDisplayName(locale);
-                        else
-                            return locale.getDisplayName(currentLocale) + " - " + locale.getDisplayName(locale);
-                    });
-                    chooseLanguagePane.setItems(SupportedLocale.getSupportedLocales());
-                    chooseLanguagePane.valueProperty().bindBidirectional(settings().languageProperty());
+                SupportedLocale currentLocale = I18n.getLocale();
+                chooseLanguagePane.setNullSafeConverter(locale -> {
+                    if (locale.isDefault())
+                        return locale.getDisplayName(currentLocale);
+                    else if (locale.isSameLanguage(currentLocale))
+                        return locale.getDisplayName(locale);
+                    else
+                        return locale.getDisplayName(currentLocale) + " - " + locale.getDisplayName(locale);
+                });
+                chooseLanguagePane.setItems(SupportedLocale.getSupportedLocales());
+                chooseLanguagePane.valueProperty().bindBidirectional(settings().languageProperty());
 
-                    languagePaneList.getContent().add(chooseLanguagePane);
+                languagePaneList.getContent().add(chooseLanguagePane);
 
-                }
+            }
 
-                rootPane.getChildren().addAll(ComponentList.createComponentListTitle(i18n("settings.launcher.language")), languagePaneList);
+            rootPane.getChildren().addAll(ComponentList.createComponentListTitle(i18n("settings.launcher.language")), languagePaneList);
+        }
+
+        {
+            ComponentList miscPaneList = new ComponentList();
+
+            {
+                LineToggleButton disableAprilFools = new LineToggleButton();
+                disableAprilFools.setTitle(i18n("settings.launcher.disable_april_fools"));
+                disableAprilFools.setSubtitle(i18n("settings.take_effect_after_restart"));
+                disableAprilFools.selectedProperty().bindBidirectional(settings().disableAprilFoolsProperty());
+                miscPaneList.getContent().add(disableAprilFools);
             }
 
             {
-                ComponentList miscPaneList = new ComponentList();
+                BorderPane debugPane = new BorderPane();
 
-                {
-                    LineToggleButton disableAprilFools = new LineToggleButton();
-                    disableAprilFools.setTitle(i18n("settings.launcher.disable_april_fools"));
-                    disableAprilFools.setSubtitle(i18n("settings.take_effect_after_restart"));
-                    disableAprilFools.selectedProperty().bindBidirectional(settings().disableAprilFoolsProperty());
-                    miscPaneList.getContent().add(disableAprilFools);
-                }
+                Label left = new Label(i18n("settings.launcher.debug"));
+                BorderPane.setAlignment(left, Pos.CENTER_LEFT);
+                debugPane.setLeft(left);
 
-                {
-                    BorderPane debugPane = new BorderPane();
+                JFXButton openLogFolderButton = new JFXButton(i18n("settings.launcher.launcher_log.reveal"));
+                openLogFolderButton.setOnAction(e -> openLogFolder());
+                openLogFolderButton.getStyleClass().add("jfx-button-border");
+                if (LOG.getLogFile() == null)
+                    openLogFolderButton.setDisable(true);
 
-                    Label left = new Label(i18n("settings.launcher.debug"));
-                    BorderPane.setAlignment(left, Pos.CENTER_LEFT);
-                    debugPane.setLeft(left);
+                SpinnerPane exportLogPane = new SpinnerPane();
 
-                    JFXButton openLogFolderButton = new JFXButton(i18n("settings.launcher.launcher_log.reveal"));
-                    openLogFolderButton.setOnAction(e -> openLogFolder());
-                    openLogFolderButton.getStyleClass().add("jfx-button-border");
-                    if (LOG.getLogFile() == null)
-                        openLogFolderButton.setDisable(true);
+                JFXButton logButton = FXUtils.newBorderButton(i18n("settings.launcher.launcher_log.export"));
+                exportLogPane.setContent(logButton);
+                logButton.setOnAction(e -> {
+                    exportLogPane.showSpinner();
+                    onExportLogs().whenCompleteAsync((result, exception) -> {
+                        exportLogPane.hideSpinner();
+                        if (exception == null) {
+                            Controllers.dialog(i18n("settings.launcher.launcher_log.export.success", result));
+                            FXUtils.showFileInExplorer(result);
+                        } else {
+                            LOG.warning("Failed to export logs", exception);
+                            Controllers.dialog(
+                                    i18n("settings.launcher.launcher_log.export.failed") + "\n" + StringUtils.getStackTrace(exception),
+                                    null,
+                                    MessageType.ERROR
+                            );
+                        }
+                    }, Schedulers.javafx());
+                });
 
-                    SpinnerPane exportLogPane = new SpinnerPane();
+                HBox buttonBox = new HBox();
+                buttonBox.setSpacing(10);
+                buttonBox.getChildren().addAll(openLogFolderButton, exportLogPane);
+                BorderPane.setAlignment(buttonBox, Pos.CENTER_RIGHT);
+                debugPane.setRight(buttonBox);
 
-                    JFXButton logButton = FXUtils.newBorderButton(i18n("settings.launcher.launcher_log.export"));
-                    exportLogPane.setContent(logButton);
-                    logButton.setOnAction(e -> {
-                        exportLogPane.showSpinner();
-                        onExportLogs().whenCompleteAsync((result, exception) -> {
-                            exportLogPane.hideSpinner();
-                            if (exception == null) {
-                                Controllers.dialog(i18n("settings.launcher.launcher_log.export.success", result));
-                                FXUtils.showFileInExplorer(result);
-                            } else {
-                                LOG.warning("Failed to export logs", exception);
-                                Controllers.dialog(
-                                        i18n("settings.launcher.launcher_log.export.failed") + "\n" + StringUtils.getStackTrace(exception),
-                                        null,
-                                        MessageType.ERROR
-                                );
-                            }
-                        }, Schedulers.javafx());
-                    });
-
-                    HBox buttonBox = new HBox();
-                    buttonBox.setSpacing(10);
-                    buttonBox.getChildren().addAll(openLogFolderButton, exportLogPane);
-                    BorderPane.setAlignment(buttonBox, Pos.CENTER_RIGHT);
-                    debugPane.setRight(buttonBox);
-
-                    miscPaneList.getContent().add(debugPane);
-                }
-
-                rootPane.getChildren().addAll(ComponentList.createComponentListTitle(i18n("settings.launcher.misc")), miscPaneList);
+                miscPaneList.getContent().add(debugPane);
             }
+
+            rootPane.getChildren().addAll(ComponentList.createComponentListTitle(i18n("settings.launcher.misc")), miscPaneList);
+        }
     }
 
     private void openLogFolder() {

@@ -19,11 +19,7 @@ package org.jackhuang.hmcl.download.cleanroom;
 
 import org.jackhuang.hmcl.download.DownloadProvider;
 import org.jackhuang.hmcl.download.VersionList;
-import org.jackhuang.hmcl.task.GetTask;
 import org.jackhuang.hmcl.task.Task;
-
-import java.time.Instant;
-import java.util.Collections;
 
 public final class CleanroomVersionList extends VersionList<CleanroomRemoteVersion> {
     private final DownloadProvider downloadProvider;

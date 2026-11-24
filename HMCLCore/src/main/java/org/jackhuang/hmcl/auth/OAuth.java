@@ -30,7 +30,6 @@ import java.util.concurrent.TimeUnit;
 
 import static org.jackhuang.hmcl.util.Lang.mapOf;
 import static org.jackhuang.hmcl.util.Pair.pair;
-import static org.jackhuang.hmcl.util.logging.Logger.LOG;
 
 public class OAuth {
     /// The redirect URI used by the Microsoft desktop OAuth flow.

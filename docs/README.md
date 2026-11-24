@@ -13,9 +13,40 @@
 **English** (**Standard**, [uʍoᗡ ǝpᴉsd∩](README_en_Qabs.md)) | 中文 ([简体](README_zh.md), [繁體](README_zh_Hant.md), [文言](README_lzh.md)) | [日本語](README_ja.md) | [español](README_es.md) | [русский](README_ru.md) | [українська](README_uk.md)
 <!-- #END LANGUAGE_SWITCHER -->
 
-## Purpose of the Fork
-To remove any unnecessory third-party services, while keep up to date with the original main branch.
-Due to the rapid development of HMCL, the sync may only be applied if critical vulnerability is found or massive features (e.g. new mod loader) are added.
+## Status: Hard Fork
+
+This repository is now a **hard fork** of [HMCL](https://github.com/HMCL-dev/HMCL), not a mirror that follows
+upstream commit by commit. The branch no longer merges upstream wholesale: it moves only when we decide to
+move it, so the tracking head below is the actual base of everything built here.
+
+### What we track
+
+- **Critical vulnerability fixes.** When upstream — or a library the launcher depends on — ships a fix for a
+  security issue, we port it, or implement an equivalent fix ourselves when the upstream approach does not
+  fit this fork.
+- **Major feature updates.** For example a new mod loader or a new Minecraft version line that cannot
+  reasonably be carried as a local patch.
+
+Everything else stays out: minor features, UI work and translation churn from upstream are not imported.
+
+### Upstream tracking head
+
+| Item | Value |
+|---|---|
+| Upstream commit | [`3ac08d7f6268`](https://github.com/HMCL-dev/HMCL/commit/3ac08d7f62688a9b36326d5e60738bcadb413b88) — *清理 FXUtils (#6706)* |
+| Upstream date | 2026-08-19 |
+| Upstream version line | 3.17 |
+| Current local version | 3.18 |
+| Last verified | 2026-11-25 |
+
+Run `git log 3ac08d7f6268..HEAD --oneline` to list the local commits carried on top of this base.
+
+### Security fixes carried locally
+
+| Issue | Handling |
+|---|---|
+| Java4Shell — CVE-2026-114938 | Ported the upstream mitigation (pure-Java Base64 decoder, `-XX:-UseBASE64Intrinsics`), then added a launcher-side gate: HMCL refuses to start on a vulnerable or unrecognized JVM, and refuses to launch a game while any known Java runtime is affected. |
+| FreeType — CVE-2026-50811 / CVE-2026-95512 | Own implementation: before every launch, the FreeType build the instance would load is read from the native library (PE `VERSIONINFO`) and compared against 2.15.0. Instances that render fonts through FreeType also refuse 32-bit runtimes, because no fixed 32-bit build exists. |
 
 ## Warning
 

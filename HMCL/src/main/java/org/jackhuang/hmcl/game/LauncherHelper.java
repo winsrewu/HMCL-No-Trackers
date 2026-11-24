@@ -140,6 +140,14 @@ public final class LauncherHelper {
         if (!JavaSecurityCheck.checkBeforeLaunch(setting))
             return;
 
+        // FreeType 门禁：实例将要加载的原生库低于 2.15.0 就中止本次启动（下载不受影响）。
+        FreeTypeSecurityCheck.Result freeType = FreeTypeSecurityCheck.inspect(
+                repository, repository.getResolvedInstanceManifest(selectedInstanceId).launchManifest(), selectedInstanceId);
+        if (freeType.status() == FreeTypeSecurityCheck.Status.VULNERABLE) {
+            FreeTypeSecurityCheck.showBlockedDialog(selectedInstanceId, freeType);
+            return;
+        }
+
         Controllers.dialog(launchingStepsPane);
         launch0();
     }
@@ -213,6 +221,16 @@ public final class LauncherHelper {
                         return null;
                     }
                     return new GameVerificationFixTask(dependencyManager, gameVersion.get(), version.get());
+                })
+                .thenComposeAsync(() -> {
+                    // 依赖下载完成后再校验一次，避免"库还没下载"时漏放。
+                    FreeTypeSecurityCheck.Result result = FreeTypeSecurityCheck.inspect(
+                            repository, version.get(), selectedInstanceId, javaVersionRef.get());
+                    if (result.status() == FreeTypeSecurityCheck.Status.VULNERABLE) {
+                        runInFX(() -> FreeTypeSecurityCheck.showBlockedDialog(selectedInstanceId, result));
+                        throw new CancellationException("Blocked by the FreeType security check");
+                    }
+                    return Task.completed(null);
                 })
                 .thenComposeAsync(() -> {
                     if (setting.getInheritable(GameSettings::allowAutoAgentProperty)

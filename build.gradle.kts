@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "org.jackhuang"
-version = "3.0-nt"
+version = "3.18-nt"
 
 subprojects {
     apply {
